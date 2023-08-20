@@ -1,4 +1,6 @@
 # ZFI – Zero-cost and safe interface to UEFI firmware
+[![CI](https://github.com/ultimicro/zfi/actions/workflows/ci.yml/badge.svg)](https://github.com/ultimicro/zfi/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/zfi)](https://crates.io/crates/zfi)
 
 ZFI is a Rust crate for writing a UEFI application with the following goals:
 
