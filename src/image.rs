@@ -1,5 +1,4 @@
 use crate::{Device, Guid, OpenProtocolAttributes, Path, SystemTable, IMAGE};
-use core::mem::transmute;
 use core::ptr::null;
 
 /// Represents an `EFI_HANDLE` for the image.
@@ -24,16 +23,16 @@ impl Image {
         let bs = st.boot_services();
         let proto = unsafe {
             bs.open_protocol(
-                transmute(self),
+                self as *const Image as *const (),
                 &ID,
-                transmute(Self::current()),
+                IMAGE.unwrap() as *const Image as *const (),
                 null(),
                 OpenProtocolAttributes::GET_PROTOCOL,
             )
             .unwrap()
         };
 
-        unsafe { transmute(proto) }
+        unsafe { &*(proto as *const LoadedImage) }
     }
 }
 
@@ -53,11 +52,11 @@ pub struct LoadedImage {
 
 impl LoadedImage {
     pub fn device(&self) -> &Device {
-        unsafe { transmute(self.device_handle) }
+        unsafe { &*(self.device_handle as *const Device) }
     }
 
     pub fn file_path(&self) -> &Path {
-        unsafe { transmute(self.file_path) }
+        unsafe { &*self.file_path }
     }
 
     pub fn image_base(&self) -> *const u8 {

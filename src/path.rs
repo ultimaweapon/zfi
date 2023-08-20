@@ -55,7 +55,7 @@ impl ToOwned for Path {
         len += 4; // End of Hardware Device Path with End Entire Device Path.
 
         // Copy nodes.
-        let src: *const u8 = unsafe { transmute(self) };
+        let src = self as *const Path as *const u8;
         let mut dst = Vec::with_capacity(len.next_power_of_two());
 
         unsafe { src.copy_to_nonoverlapping(dst.as_mut_ptr(), len) };
@@ -71,7 +71,7 @@ impl<'a> IntoIterator for &'a Path {
 
     fn into_iter(self) -> Self::IntoIter {
         PathNodes {
-            next: unsafe { transmute(self) },
+            next: self as *const Path as *const u8,
             phantom: PhantomData,
         }
     }
@@ -132,7 +132,7 @@ impl Deref for PathBuf {
 
 impl Borrow<Path> for PathBuf {
     fn borrow(&self) -> &Path {
-        unsafe { transmute(self.0.as_ptr()) }
+        unsafe { &*(self.0.as_ptr() as *const Path) }
     }
 }
 
@@ -170,6 +170,6 @@ impl<'a> Iterator for PathNodes<'a> {
         // Move to next node.
         self.next = unsafe { p.add(read_unaligned::<u16>(p.add(2) as _).into()) };
 
-        Some(unsafe { transmute(p) })
+        Some(unsafe { &*(p as *const Path) })
     }
 }

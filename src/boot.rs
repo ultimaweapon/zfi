@@ -1,5 +1,5 @@
 use crate::event::Event;
-use crate::{Device, Guid, Image, Pages, Path, Status, TableHeader, PAGE_SIZE};
+use crate::{Device, Guid, Image, Pages, Path, Status, TableHeader, IMAGE, PAGE_SIZE};
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::mem::{size_of, transmute};
@@ -194,7 +194,7 @@ impl BootServices {
     /// This method don't check anything so the caller is responsible to make sure all arguments is
     /// valid for `EFI_BOOT_SERVICES.OpenProtocol()`.
     pub unsafe fn get_protocol(&self, handle: *const (), proto: &Guid) -> Option<*const ()> {
-        let agent = transmute(Image::current());
+        let agent = IMAGE.unwrap() as *const Image as *const ();
         let attrs = OpenProtocolAttributes::GET_PROTOCOL;
 
         match self.open_protocol(handle, proto, agent, null(), attrs) {

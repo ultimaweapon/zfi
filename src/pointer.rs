@@ -43,7 +43,7 @@ impl<T> DerefMut for Owned<T> {
 
 impl<T> AsRef<T> for Owned<T> {
     fn as_ref(&self) -> &T {
-        &self
+        self
     }
 }
 

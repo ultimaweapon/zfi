@@ -109,7 +109,7 @@ impl File {
     /// Reads data from the file.
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize, Status> {
         let mut len = buf.len();
-        let status = unsafe { (self.read)(&self, &mut len, buf.as_mut_ptr()) };
+        let status = unsafe { (self.read)(self, &mut len, buf.as_mut_ptr()) };
 
         if status != Status::SUCCESS {
             Err(status)
