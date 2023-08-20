@@ -13,7 +13,16 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
+    - name: Add UEFI targets
+      run: |
+        rustup target add aarch64-unknown-uefi i686-unknown-uefi x86_64-unknown-uefi
     - name: Check code styles
       run: cargo fmt --check
     - name: Run Clippy
       run: cargo clippy -- -D warnings
+    - name: Build for aarch64-unknown-uefi
+      run: cargo build --target aarch64-unknown-uefi
+    - name: Build for i686-unknown-uefi
+      run: cargo build --target i686-unknown-uefi
+    - name: Build for x86_64-unknown-uefi
+      run: cargo build --target x86_64-unknown-uefi
