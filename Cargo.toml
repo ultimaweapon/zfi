@@ -1,0 +1,10 @@
+[package]
+name = "zfi"
+description = "Zero-cost and safe interface to UEFI firmware"
+version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/ultimicro/zfi"
+edition = "2021"
+
+[dependencies]
+bitflags = "2.4"
