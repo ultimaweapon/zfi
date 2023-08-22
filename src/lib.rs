@@ -18,6 +18,7 @@ pub use self::status::*;
 pub use self::string::*;
 pub use self::system::*;
 pub use self::time::*;
+pub use zfi_macros::main;
 
 use alloc::boxed::Box;
 use core::cell::RefCell;
