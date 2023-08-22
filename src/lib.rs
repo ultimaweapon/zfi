@@ -42,6 +42,7 @@ mod status;
 mod string;
 mod system;
 mod time;
+mod entry_macro;
 
 extern crate alloc;
 
