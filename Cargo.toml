@@ -8,7 +8,10 @@ edition = "2021"
 
 [dependencies]
 bitflags = "2.4"
-zfi-macros = { path = "./zfi-macros" }
+zfi-macros = { path = "zfi-macros" }
+
+[dev-dependencies]
+zfi-testing = { path = "testing" }
 
 [workspace]
-members = ["zfi-macros"]
+members = ["zfi-macros", "testing", "testing-macros"]
