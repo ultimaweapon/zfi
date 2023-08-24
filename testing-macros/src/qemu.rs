@@ -109,7 +109,10 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     let cargo = std::fs::read_to_string(proj.join("Cargo.toml")).unwrap();
     let mut cargo = toml::from_str::<Cargo>(&cargo).unwrap();
 
-    // Add our own if the test being run is our test.
+    cargo.dev_dependencies.remove("zfi-testing");
+    cargo.dependencies.extend(cargo.dev_dependencies.drain());
+
+    // Check if the test being run is our test.
     if cargo.package.take().unwrap().name == "zfi" {
         cargo.dependencies.remove("zfi-macros");
         cargo.dependencies.insert(
@@ -119,11 +122,6 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
                 path: Some(proj.into_os_string().into_string().unwrap()),
             },
         );
-    }
-
-    // Remove zfi-testing.
-    if let Some(dev) = &mut cargo.dev_dependencies {
-        dev.remove("zfi-testing");
     }
 
     // Create Cargo.toml.
@@ -197,7 +195,7 @@ struct Cargo {
     dependencies: HashMap<String, Dependency>,
 
     #[serde(rename = "dev-dependencies")]
-    dev_dependencies: Option<HashMap<String, Dependency>>,
+    dev_dependencies: HashMap<String, Dependency>,
 }
 
 #[derive(Serialize, Deserialize)]

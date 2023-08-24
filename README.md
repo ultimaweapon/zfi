@@ -71,6 +71,49 @@ cargo build --target x86_64-unknown-uefi
 
 You can grab the EFI file in `target/x86_64-unknown-uefi/debug` and boot it on a compatible machine.
 
+## Integration Testing
+
+ZFI provide [zfi-testing](https://crates.io/crates/zfi-testing) crate to help you write the
+[integration tests](https://doc.rust-lang.org/rust-by-example/testing/integration_testing.html).
+This crate must be added as a
+[development dependencies](https://doc.rust-lang.org/rust-by-example/testing/dev_dependencies.html)
+, not a standard dependencies. You need to install the following tools before you can run the
+integration tests that use `zfi-testing`:
+
+- [QEMU](https://www.qemu.org)
+- [OVMF](https://github.com/tianocore/tianocore.github.io/wiki/OVMF)
+
+Once ready create `zfi.toml` in the root of your package (the same location as `Cargo.toml`) with
+the following content:
+
+```toml
+[qemu.RUST_TARGET]
+bin = "QEMU_BIN"
+firmware = "OVMF_CODE"
+nvram = "OVMF_VARS"
+```
+
+This file should not commit to the version control because it is specific to your machine. Replace
+the following placeholders with the appropriate value:
+
+- `RUST_TARGET`: name of Rust target you want to run on the QEMU (e.g. `x86_64-unknown-uefi`).
+- `QEMU_BIN`: path to the QEMU binary to run your tests. The binary must have the same CPU type as
+  `RUST_TARGET`. You don't need to specify a full path if the binary can be found in the `PATH`
+  environment variable (e.g. `qemu-system-x86_64`).
+- `OVMF_CODE`: path to `OVMF_CODE.fd` from OVMF. File must have the same CPU type as `RUST_TARGET`
+  (e.g. `/usr/share/edk2/x64/OVMF_CODE.fd`).
+- `OVMF_VARS`: path to `OVMF_VARS.fd` from OVMF. File must have the same CPU type as `RUST_TARGET`
+  (e.g. `/usr/share/edk2/x64/OVMF_VARS.fd`).
+
+Example:
+
+```toml
+[qemu.x86_64-unknown-uefi]
+bin = "qemu-system-x86_64"
+firmware = "/usr/share/edk2/x64/OVMF_CODE.fd"
+nvram = "/usr/share/edk2/x64/OVMF_VARS.fd"
+```
+
 ## Example Projects
 
 - [TCG Boot](https://github.com/ultimaweapon/tcg-boot)
