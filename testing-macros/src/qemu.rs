@@ -18,7 +18,7 @@ pub fn parse_qemu_attribute(item: TokenStream) -> Result<TokenStream, Error> {
     for t in item {
         match &state {
             State::Start => match &t {
-                TokenTree::Ident(i) if i.to_string() == "fn" => state = State::Fn,
+                TokenTree::Ident(i) if i == "fn" => state = State::Fn,
                 _ => {}
             },
             State::Fn => match &t {
@@ -131,9 +131,9 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data, r#"name = "{name}""#).unwrap();
     writeln!(data, r#"version = "0.1.0""#).unwrap();
     writeln!(data, r#"edition = "2021""#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     data.push_str(&toml::to_string_pretty(&cargo).unwrap());
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"[workspace]"#).unwrap();
     writeln!(data, r#"members = []"#).unwrap();
 
@@ -149,9 +149,9 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
 
     writeln!(data, r#"#![no_std]"#).unwrap();
     writeln!(data, r#"#![no_main]"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"extern crate alloc;"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"#[no_mangle]"#).unwrap();
     writeln!(data, r#"extern "efiapi" fn efi_main(image: &'static ::zfi::Image, st: &'static ::zfi::SystemTable) -> ::zfi::Status {{"#).unwrap();
     writeln!(data, r#"    unsafe {{ ::zfi::init(image, st, None) }};"#).unwrap();
@@ -159,7 +159,7 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data, r#"    ::zfi::println!("zfi:ok");"#).unwrap();
     writeln!(data, r#"    loop {{}}"#).unwrap();
     writeln!(data, r#"}}"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"#[panic_handler]"#).unwrap();
     writeln!(
         data,
@@ -167,13 +167,13 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     )
     .unwrap();
     writeln!(data, r#"    let l = i.location().unwrap();"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(
         data,
         r#"    ::zfi::println!("zfi:panic:{{}}:{{}}:{{}}", l.file(), l.line(), l.column());"#
     )
     .unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(
         data,
         r#"    if let Some(&p) = i.payload().downcast_ref::<&str>() {{"#
@@ -189,12 +189,12 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data, r#"    }} else {{"#).unwrap();
     writeln!(data, r#"        ::zfi::println!("{{i}}");"#).unwrap();
     writeln!(data, r#"    }}"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"    ::zfi::println!("zfi:end");"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"    loop {{}}"#).unwrap();
     writeln!(data, r#"}}"#).unwrap();
-    writeln!(data, r#""#).unwrap();
+    writeln!(data).unwrap();
     writeln!(data, r#"#[global_allocator]"#).unwrap();
     writeln!(
         data,

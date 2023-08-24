@@ -43,11 +43,14 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
         .arg("--quiet")
         .stdin(Stdio::null())
         .status()
-        .expect(&format!(
-            "cannot spawn cargo on {} for {} target",
-            project.display(),
-            target
-        ));
+        .unwrap_or_else(|e| {
+            panic!(
+                "cannot spawn cargo on {} for {} target: {}",
+                project.display(),
+                target,
+                e
+            )
+        });
 
     if !status.success() {
         panic!(
@@ -60,12 +63,9 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
 
     // Get ptoject name.
     let name = std::fs::read_to_string(project.join("Cargo.toml"))
-        .expect(&format!(
-            "cannot read Cargo.toml from {}",
-            project.display()
-        ))
+        .unwrap_or_else(|e| panic!("cannot read Cargo.toml from {}: {}", project.display(), e))
         .parse::<toml::Table>()
-        .expect(&format!("cannot parse Cargo.toml on {}", project.display()))
+        .unwrap_or_else(|e| panic!("cannot parse Cargo.toml from {}: {}", project.display(), e))
         .get("package")
         .unwrap()
         .as_table()
@@ -146,29 +146,30 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
         })
         .unwrap(),
     )
-    .expect(&format!(
-        "cannot put {} to the EFI system partition",
-        bin.display()
-    ));
+    .unwrap_or_else(|e| {
+        panic!(
+            "cannot put {} to the EFI system partition: {}",
+            bin.display(),
+            e
+        )
+    });
 
     // Create a VM directory.
     let vm = root.join("vm");
 
-    create_dir_all(&vm).expect(&format!("cannot create {}", vm.display()));
+    create_dir_all(&vm).unwrap_or_else(|e| panic!("cannot create {}: {}", vm.display(), e));
 
     // Write the disk.
     let disk = vm.join("disk.img");
 
-    std::fs::write(&disk, &data).expect(&format!("cannot create {}", disk.display()));
+    std::fs::write(&disk, &data)
+        .unwrap_or_else(|e| panic!("cannot create {}: {}", disk.display(), e));
 
     // Copy UEFI NVRAM.
     let nvram = vm.join("nvram.fd");
 
-    std::fs::copy(&config.nvram, &nvram).expect(&format!(
-        "cannot copy {} to {}",
-        config.nvram,
-        vm.display()
-    ));
+    std::fs::copy(&config.nvram, &nvram)
+        .unwrap_or_else(|e| panic!("cannot copy {} to {}: {}", config.nvram, vm.display(), e));
 
     // Spawn QEMU.
     let mut qemu = Command::new(&config.bin)
@@ -192,7 +193,7 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
             disk.to_str().unwrap()
         ))
         .spawn()
-        .expect(&format!("cannot spawn {}", config.bin));
+        .unwrap_or_else(|e| panic!("cannot spawn {}: {}", config.bin, e));
 
     // Associate QEMU to a panic handler so it will get killed if panic=abort.
     let mut stdout = BufReader::new(qemu.stdout.take().unwrap());
@@ -222,9 +223,7 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
         }
 
         // Parse the command.
-        let (cmd, _) = if line.starts_with("zfi:") {
-            let data = &line[4..];
-
+        let (cmd, _) = if let Some(data) = line.strip_prefix("zfi:") {
             match data.split_once(':') {
                 Some((l, r)) => (l, r.trim_end()),
                 None => (data.trim_end(), ""),
@@ -261,7 +260,7 @@ fn report_failure(msg: &str) {
     panic_any(if msg.starts_with("panicked at '") {
         let re = Regex::new(r"^panicked at '(.*?)', .+?:\d+:\d+$").unwrap();
 
-        re.captures(&msg)
+        re.captures(msg)
             .unwrap()
             .get(1)
             .unwrap()
