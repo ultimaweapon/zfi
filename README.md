@@ -76,8 +76,8 @@ You can grab the EFI file in `target/x86_64-unknown-uefi/debug` and boot it on a
 ZFI provide [zfi-testing](https://crates.io/crates/zfi-testing) crate to help you write the
 [integration tests](https://doc.rust-lang.org/rust-by-example/testing/integration_testing.html).
 This crate must be added as a
-[development dependencies](https://doc.rust-lang.org/rust-by-example/testing/dev_dependencies.html)
-, not a standard dependencies. You need to install the following tools before you can run the
+[development dependency](https://doc.rust-lang.org/rust-by-example/testing/dev_dependencies.html),
+not a standard dependency. You need to install the following tools before you can run the
 integration tests that use `zfi-testing`:
 
 - [QEMU](https://www.qemu.org)

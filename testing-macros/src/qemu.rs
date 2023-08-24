@@ -150,6 +150,8 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data, r#"#![no_std]"#).unwrap();
     writeln!(data, r#"#![no_main]"#).unwrap();
     writeln!(data, r#""#).unwrap();
+    writeln!(data, r#"extern crate alloc;"#).unwrap();
+    writeln!(data, r#""#).unwrap();
     writeln!(data, r#"#[no_mangle]"#).unwrap();
     writeln!(data, r#"extern "efiapi" fn efi_main(image: &'static ::zfi::Image, st: &'static ::zfi::SystemTable) -> ::zfi::Status {{"#).unwrap();
     writeln!(data, r#"    unsafe {{ ::zfi::init(image, st, None) }};"#).unwrap();
@@ -161,9 +163,35 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data, r#"#[panic_handler]"#).unwrap();
     writeln!(
         data,
-        r#"fn panic_handler(_: &::core::panic::PanicInfo) -> ! {{"#
+        r#"fn panic_handler(i: &::core::panic::PanicInfo) -> ! {{"#
     )
     .unwrap();
+    writeln!(data, r#"    let l = i.location().unwrap();"#).unwrap();
+    writeln!(data, r#""#).unwrap();
+    writeln!(
+        data,
+        r#"    ::zfi::println!("zfi:panic:{{}}:{{}}:{{}}", l.file(), l.line(), l.column());"#
+    )
+    .unwrap();
+    writeln!(data, r#""#).unwrap();
+    writeln!(
+        data,
+        r#"    if let Some(&p) = i.payload().downcast_ref::<&str>() {{"#
+    )
+    .unwrap();
+    writeln!(data, r#"        ::zfi::println!("{{p}}");"#).unwrap();
+    writeln!(
+        data,
+        r#"    }} else if let Some(p) = i.payload().downcast_ref::<::alloc::string::String>() {{"#
+    )
+    .unwrap();
+    writeln!(data, r#"        ::zfi::println!("{{p}}");"#).unwrap();
+    writeln!(data, r#"    }} else {{"#).unwrap();
+    writeln!(data, r#"        ::zfi::println!("{{i}}");"#).unwrap();
+    writeln!(data, r#"    }}"#).unwrap();
+    writeln!(data, r#""#).unwrap();
+    writeln!(data, r#"    ::zfi::println!("zfi:end");"#).unwrap();
+    writeln!(data, r#""#).unwrap();
     writeln!(data, r#"    loop {{}}"#).unwrap();
     writeln!(data, r#"}}"#).unwrap();
     writeln!(data, r#""#).unwrap();
