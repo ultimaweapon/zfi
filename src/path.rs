@@ -1,5 +1,5 @@
 use crate::EfiStr;
-use alloc::borrow::ToOwned;
+use alloc::borrow::{Cow, ToOwned};
 use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::fmt::{Display, Formatter};
@@ -19,11 +19,7 @@ pub struct Path {
 }
 
 impl Path {
-    #[cfg(target_endian = "little")]
     pub const EMPTY: Path = unsafe { transmute([0x7Fu8, 0xFF, 0x04, 0x00]) };
-
-    #[cfg(target_endian = "big")]
-    pub const EMPTY: Path = unsafe { transmute([0x7Fu8, 0xFF, 0x00, 0x04]) };
 
     pub fn join_media_file_path<F: AsRef<EfiStr>>(&self, file: F) -> PathBuf {
         let mut buf = self.to_owned();
@@ -38,6 +34,13 @@ impl Path {
             (4, 4) => PathNode::MediaFilePath(unsafe { EfiStr::from_ptr(data as _) }),
             (t, s) => todo!("device path with type {t:#x}:{s:#x}"),
         }
+    }
+
+    pub const fn as_bytes(&self) -> &[u8] {
+        let ptr = self as *const Self as *const u8;
+        let len = u16::from_ne_bytes(self.len) as usize;
+
+        unsafe { core::slice::from_raw_parts(ptr, len) }
     }
 }
 
@@ -61,7 +64,7 @@ impl ToOwned for Path {
         unsafe { src.copy_to_nonoverlapping(dst.as_mut_ptr(), len) };
         unsafe { dst.set_len(len) };
 
-        PathBuf(dst)
+        PathBuf(Cow::Owned(dst))
     }
 }
 
@@ -91,9 +94,13 @@ impl Display for Path {
 }
 
 /// An owned version of [`Path`].
-pub struct PathBuf(Vec<u8>);
+pub struct PathBuf(Cow<'static, [u8]>);
 
 impl PathBuf {
+    pub const fn new() -> Self {
+        Self(Cow::Borrowed(Path::EMPTY.as_bytes()))
+    }
+
     pub fn push_media_file_path<F: AsRef<EfiStr>>(&mut self, file: F) {
         unsafe { self.push(4, 4, file.as_ref().as_ref()) };
     }
@@ -104,8 +111,9 @@ impl PathBuf {
         // Change type on the last node.
         let len: u16 = (data.len() + 4).try_into().unwrap();
         let len = len.to_ne_bytes();
-        let off = self.0.len() - 4;
-        let last = &mut self.0[off..];
+        let path = self.0.to_mut();
+        let off = path.len() - 4;
+        let last = &mut path[off..];
 
         last[0] = ty;
         last[1] = sub;
@@ -113,12 +121,12 @@ impl PathBuf {
         last[3] = len[1];
 
         // Push data.
-        self.0.extend(data);
+        path.extend(data);
 
         // Push Hardware Device Path with End Entire Device Path.
-        self.0.push(0x7F);
-        self.0.push(0xFF);
-        self.0.extend(4u16.to_ne_bytes());
+        path.push(0x7F);
+        path.push(0xFF);
+        path.extend(4u16.to_ne_bytes());
     }
 }
 
