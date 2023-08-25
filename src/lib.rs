@@ -18,7 +18,7 @@ pub use self::status::*;
 pub use self::string::*;
 pub use self::system::*;
 pub use self::time::*;
-pub use zfi_macros::main;
+pub use zfi_macros::*;
 
 use alloc::boxed::Box;
 use core::cell::RefCell;
@@ -45,6 +45,7 @@ mod system;
 mod time;
 
 extern crate alloc;
+extern crate self as zfi;
 
 pub(crate) static mut ST: Option<&SystemTable> = None;
 pub(crate) static mut IMAGE: Option<&Image> = None;
