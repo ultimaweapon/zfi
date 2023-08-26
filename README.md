@@ -151,10 +151,15 @@ cargo test
 Keep in mind that you need to put everything your test needed in the same function because what
 `qemu` attribute does is moving your function body into `efi_main` and run it on QEMU.
 
-### Known Issue
+### Known Issues
 
-Any panic (including assertion failed) in your integration test will be show as `src/main.rs:L:C`.
-This is a limitation on stable Rust for [now](https://github.com/rust-lang/rust/issues/54725).
+- Any panic (including assertion failed) in your integration test will be show as `src/main.rs:L:C`.
+  This is a limitation on stable Rust for [now](https://github.com/rust-lang/rust/issues/54725).
+- rust-analyzer not report any syntax error. The reason is because `qemu` attribute replace the
+  whole function body, which mean what rust-analyzer see when running syntax check is the replaced
+  function, not the origial function. Right now there is no way to check if our proc macro being run
+  by rust-analyzer until this [issue](https://github.com/rust-lang/rust-analyzer/issues/13731) has
+  been resolved.
 
 ## Breaking Changes
 
