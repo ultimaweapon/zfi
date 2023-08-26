@@ -20,21 +20,16 @@ jobs:
     - name: Install system packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y ovmf ovmf-ia32 qemu-efi-aarch64 qemu-system-arm qemu-system-x86
+        sudo apt-get install -y ovmf qemu-efi-aarch64 qemu-system-arm qemu-system-x86
     - name: Add UEFI targets
       run: |
-        rustup target add aarch64-unknown-uefi i686-unknown-uefi x86_64-unknown-uefi
+        rustup target add aarch64-unknown-uefi x86_64-unknown-uefi
     - name: Generate test configurations
       run: |
         [qemu.aarch64-unknown-uefi]
         bin = "qemu-system-aarch64"
         firmware = "/usr/share/AAVMF/AAVMF_CODE.fd"
         nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
-
-        [qemu.i686-unknown-uefi]
-        bin = "qemu-system-i386"
-        firmware = "/usr/share/OVMF/OVMF32_CODE_4M.secboot.fd"
-        nvram = "/usr/share/OVMF/OVMF32_VARS_4M.fd"
 
         [qemu.x86_64-unknown-uefi]
         bin = "qemu-system-x86_64"
