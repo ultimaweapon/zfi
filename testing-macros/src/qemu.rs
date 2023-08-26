@@ -115,10 +115,10 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     // Fix relative path.
     for dep in cargo.dependencies.values_mut() {
         let path = match dep {
-            Dependency::Complex { version: _, path } => match path {
-                Some(v) => v,
-                None => continue,
-            },
+            Dependency::Complex {
+                version: _,
+                path: Some(v),
+            } => v,
             _ => continue,
         };
 
