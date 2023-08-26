@@ -114,6 +114,48 @@ firmware = "/usr/share/edk2/x64/OVMF_CODE.fd"
 nvram = "/usr/share/edk2/x64/OVMF_VARS.fd"
 ```
 
+### Writing Tests
+
+To write an integration test to run on QEMU, put `zfi_testing::qemu` attribute to your integration
+test:
+
+```rust
+use zfi_testing::qemu;
+
+#[test]
+#[qemu]
+fn proto() {
+    use zfi::{str, Image, PathBuf};
+
+    let proto = Image::current().proto();
+    let mut path = PathBuf::new();
+
+    if cfg!(target_arch = "x86_64") {
+        path.push_media_file_path(str!(r"\EFI\BOOT\BOOTX64.EFI"));
+    } else {
+        todo!("path for non-x86-64");
+    }
+
+    assert_eq!(proto.device().file_system().is_some(), true);
+    assert_eq!(*proto.file_path(), path);
+}
+```
+
+The code in the function that has `zfi_testing::qemu` attribute will run on the QEMU. This test can
+be run in the same way as normal integration tests:
+
+```sh
+cargo test
+```
+
+Keep in mind that you need to put everything your test needed in the same function because what
+`qemu` attribute does is moving your function body into `efi_main` and run it on QEMU.
+
+### Known Issue
+
+Any panic (including assertion failed) in your integration test will be show as `src/main.rs:L:C`.
+This is a limitation on stable Rust for [now](https://github.com/rust-lang/rust/issues/54725).
+
 ## Breaking Changes
 
 ### 0.1 to 0.2

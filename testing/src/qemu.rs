@@ -6,6 +6,7 @@ use gpt::GptConfig;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::Write;
 use std::fs::{create_dir_all, File};
 use std::io::{BufRead, BufReader, Cursor};
 use std::ops::{Deref, DerefMut};
@@ -258,14 +259,21 @@ fn report_failure(msg: &str) {
     // Right now PanicInfo does not have any payload for no_std. So our only choice is using its
     // Display implementation then trim its result.
     panic_any(if msg.starts_with("panicked at '") {
-        let re = Regex::new(r"^panicked at '(.*?)', .+?:\d+:\d+$").unwrap();
+        let r = Regex::new(r"(?s)^panicked at '(.*?)', (.+?):(\d+):(\d+)$").unwrap();
+        let m = r.captures(msg).unwrap();
+        let mut d = String::new();
 
-        re.captures(msg)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .as_str()
-            .to_owned()
+        writeln!(
+            d,
+            "QEMU test failed: {}:{}:{}",
+            m.get(2).unwrap().as_str(),
+            m.get(3).unwrap().as_str(),
+            m.get(4).unwrap().as_str()
+        )
+        .unwrap();
+
+        d.push_str(m.get(1).unwrap().as_str());
+        d
     } else {
         msg.to_owned()
     });
