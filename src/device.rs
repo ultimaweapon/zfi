@@ -19,7 +19,7 @@ impl Device {
         );
 
         unsafe {
-            get_protocol(self as *const Device as *const (), &ID).map(|v| &*(v as *const Path))
+            get_protocol(self as *const Device as *const (), &ID).map(|v| Path::from_ptr(v as _))
         }
     }
 

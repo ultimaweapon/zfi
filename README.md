@@ -114,6 +114,14 @@ firmware = "/usr/share/edk2/x64/OVMF_CODE.fd"
 nvram = "/usr/share/edk2/x64/OVMF_VARS.fd"
 ```
 
+## Breaking Changes
+
+### 0.1 to 0.2
+
+- `Path` is changed from sized type to unsized type. Any code that cast `Path` to a raw pointer need
+  to update otherwise you will got a fat pointer, which is Rust specific. You can get a raw pointer
+  via `Path::as_bytes()`.
+
 ## Example Projects
 
 - [TCG Boot](https://github.com/ultimaweapon/tcg-boot)

@@ -2,7 +2,7 @@ use crate::event::Event;
 use crate::{Device, Guid, Image, Pages, Path, Status, TableHeader, IMAGE, PAGE_SIZE};
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use core::mem::{size_of, transmute};
+use core::mem::size_of;
 use core::ptr::{null, null_mut};
 
 /// Represents an `EFI_BOOT_SERVICES`.
@@ -36,7 +36,7 @@ pub struct BootServices {
     register_protocol_notify: fn(),
     locate_handle: fn(),
     locate_device_path:
-        unsafe extern "efiapi" fn(*const Guid, *mut *const Path, *mut *const ()) -> Status,
+        unsafe extern "efiapi" fn(*const Guid, *mut *const u8, *mut *const ()) -> Status,
     install_configuration_table: fn(),
     load_image: fn(),
     start_image: fn(),
@@ -163,14 +163,14 @@ impl BootServices {
         proto: &Guid,
         path: &'a Path,
     ) -> Result<(&'static Device, &'a Path), Status> {
-        let mut path = path as *const Path;
+        let mut path = path.as_bytes().as_ptr();
         let mut device = null();
         let status = unsafe { (self.locate_device_path)(proto, &mut path, &mut device) };
 
         if status != Status::SUCCESS {
             Err(status)
         } else {
-            Ok(unsafe { transmute((device, path)) })
+            Ok(unsafe { (&*(device as *const Device), Path::from_ptr(path)) })
         }
     }
 

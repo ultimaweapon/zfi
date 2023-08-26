@@ -1,25 +1,43 @@
 use crate::EfiStr;
 use alloc::borrow::{Cow, ToOwned};
-use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::fmt::{Display, Formatter};
-use core::marker::PhantomData;
-use core::mem::transmute;
 use core::ops::Deref;
 use core::ptr::read_unaligned;
+use core::slice::from_raw_parts;
 
 /// Represents one or more `EFI_DEVICE_PATH_PROTOCOL`.
-#[repr(C)]
-#[derive(Debug)]
-pub struct Path {
-    ty: u8,
-    sub: u8,
-    len: [u8; 2], // Cannot be u16 because the EFI_DEVICE_PATH_PROTOCOL is one byte alignment.
-    data: [u8; 0],
-}
+#[repr(transparent)]
+#[derive(Debug, PartialEq)]
+pub struct Path([u8]);
 
 impl Path {
-    pub const EMPTY: Path = unsafe { transmute([0x7Fu8, 0xFF, 0x04, 0x00]) };
+    pub const EMPTY: &Path = unsafe { Self::new_unchecked(&[0x7F, 0xFF, 0x04, 0x00]) };
+
+    /// # Safety
+    /// `data` must be a valid device path.
+    pub const unsafe fn new_unchecked(data: &[u8]) -> &Self {
+        // SAFETY: This is safe because Path is #[repr(transparent)].
+        &*(data as *const [u8] as *const Self)
+    }
+
+    /// # Safety
+    /// `ptr` must be a valid device path.
+    pub unsafe fn from_ptr<'a>(ptr: *const u8) -> &'a Self {
+        let mut p = ptr;
+        let mut t = 0;
+        let mut l: usize;
+
+        while *p != 0x7F || *p.add(1) != 0xFF {
+            l = read_unaligned::<u16>(p.add(2) as _).try_into().unwrap();
+            t += l;
+            p = p.add(l);
+        }
+
+        t += 4;
+
+        Self::new_unchecked(from_raw_parts(ptr, t))
+    }
 
     pub fn join_media_file_path<F: AsRef<EfiStr>>(&self, file: F) -> PathBuf {
         let mut buf = self.to_owned();
@@ -28,19 +46,22 @@ impl Path {
     }
 
     pub fn read(&self) -> PathNode<'_> {
-        let data = self.data.as_ptr();
+        let p = &self.0[4..];
 
-        match (self.ty, self.sub) {
-            (4, 4) => PathNode::MediaFilePath(unsafe { EfiStr::from_ptr(data as _) }),
+        match (self.0[0], self.0[1]) {
+            (4, 4) => PathNode::MediaFilePath(unsafe { EfiStr::from_ptr(p.as_ptr() as _) }),
             (t, s) => todo!("device path with type {t:#x}:{s:#x}"),
         }
     }
 
     pub const fn as_bytes(&self) -> &[u8] {
-        let ptr = self as *const Self as *const u8;
-        let len = u16::from_ne_bytes(self.len) as usize;
+        &self.0
+    }
+}
 
-        unsafe { core::slice::from_raw_parts(ptr, len) }
+impl PartialEq<PathBuf> for Path {
+    fn eq(&self, other: &PathBuf) -> bool {
+        self == Borrow::<Self>::borrow(other)
     }
 }
 
@@ -48,23 +69,7 @@ impl ToOwned for Path {
     type Owned = PathBuf;
 
     fn to_owned(&self) -> Self::Owned {
-        // Get total length.
-        let mut len: usize = 0;
-
-        for p in self {
-            len += Into::<usize>::into(u16::from_ne_bytes(p.len));
-        }
-
-        len += 4; // End of Hardware Device Path with End Entire Device Path.
-
-        // Copy nodes.
-        let src = self as *const Path as *const u8;
-        let mut dst = Vec::with_capacity(len.next_power_of_two());
-
-        unsafe { src.copy_to_nonoverlapping(dst.as_mut_ptr(), len) };
-        unsafe { dst.set_len(len) };
-
-        PathBuf(Cow::Owned(dst))
+        PathBuf(Cow::Owned(self.0.to_vec()))
     }
 }
 
@@ -73,10 +78,7 @@ impl<'a> IntoIterator for &'a Path {
     type IntoIter = PathNodes<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        PathNodes {
-            next: self as *const Path as *const u8,
-            phantom: PhantomData,
-        }
+        PathNodes(&self.0)
     }
 }
 
@@ -94,6 +96,7 @@ impl Display for Path {
 }
 
 /// An owned version of [`Path`].
+#[derive(Debug)]
 pub struct PathBuf(Cow<'static, [u8]>);
 
 impl PathBuf {
@@ -140,7 +143,7 @@ impl Deref for PathBuf {
 
 impl Borrow<Path> for PathBuf {
     fn borrow(&self) -> &Path {
-        unsafe { &*(self.0.as_ptr() as *const Path) }
+        unsafe { Path::new_unchecked(&self.0) }
     }
 }
 
@@ -158,10 +161,7 @@ impl<'a> Display for PathNode<'a> {
 }
 
 /// An iterator over device path nodes.
-pub struct PathNodes<'a> {
-    next: *const u8,
-    phantom: PhantomData<&'a [Path]>,
-}
+pub struct PathNodes<'a>(&'a [u8]);
 
 impl<'a> Iterator for PathNodes<'a> {
     type Item = &'a Path;
@@ -169,15 +169,19 @@ impl<'a> Iterator for PathNodes<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         // Do nothing if the current node is End of Hardware Device Path with End Entire Device
         // Path.
-        let p = self.next;
+        let p = self.0;
 
-        if unsafe { *p == 0x7F && *p.add(1) == 0xFF } {
+        if p[0] == 0x7F && p[1] == 0xFF {
             return None;
         }
 
         // Move to next node.
-        self.next = unsafe { p.add(read_unaligned::<u16>(p.add(2) as _).into()) };
+        let l: usize = u16::from_ne_bytes(p[2..4].try_into().unwrap())
+            .try_into()
+            .unwrap();
 
-        Some(unsafe { &*(p as *const Path) })
+        self.0 = &p[l..];
+
+        Some(unsafe { Path::new_unchecked(p) })
     }
 }

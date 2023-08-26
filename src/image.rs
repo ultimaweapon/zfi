@@ -43,7 +43,7 @@ pub struct LoadedImage {
     parent_handle: *const (),
     system_table: *const SystemTable,
     device_handle: *const (),
-    file_path: *const Path,
+    file_path: *const u8,
     reserved: *const (),
     load_options_size: u32,
     load_options: *const (),
@@ -56,7 +56,7 @@ impl LoadedImage {
     }
 
     pub fn file_path(&self) -> &Path {
-        unsafe { &*self.file_path }
+        unsafe { Path::from_ptr(self.file_path) }
     }
 
     pub fn image_base(&self) -> *const u8 {
