@@ -142,6 +142,8 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
         .create_dir("boot")
         .unwrap()
         .create_file(match target {
+            "aarch64-unknown-uefi" => "bootaa64.efi",
+            "i686-unknown-uefi" => "bootia32.efi",
             "x86_64-unknown-uefi" => "bootx64.efi",
             v => todo!("target {v}"),
         })
