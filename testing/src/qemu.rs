@@ -174,9 +174,10 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
     std::fs::copy(&config.nvram, &nvram)
         .unwrap_or_else(|e| panic!("cannot copy {} to {}: {}", config.nvram, vm.display(), e));
 
-    // Spawn QEMU.
-    let mut qemu = Command::new(&config.bin)
-        .stdin(Stdio::null())
+    // Setup QEMU common arguments.
+    let mut qemu = Command::new(&config.bin);
+
+    qemu.stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .arg("-nographic")
@@ -194,7 +195,15 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
         .arg(format!(
             "if=virtio,format=raw,file={}",
             disk.to_str().unwrap()
-        ))
+        ));
+
+    if target == "aarch64-unknown-uefi" {
+        qemu.args(["-machine", "virt"]);
+        qemu.args(["-cpu", "cortex-a57"]);
+    }
+
+    // Spawn QEMU.
+    let mut qemu = qemu
         .spawn()
         .unwrap_or_else(|e| panic!("cannot spawn {}: {}", config.bin, e));
 
@@ -202,12 +211,15 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
     let mut stdout = BufReader::new(qemu.stdout.take().unwrap());
     let qemu = Arc::new(Mutex::new(Some(Process(qemu))));
     let hook = std::panic::take_hook();
-    let qemu_copy = qemu.clone();
 
-    std::panic::set_hook(Box::new(move |i| {
-        *qemu_copy.lock().unwrap() = None;
-        hook(i);
-    }));
+    {
+        let qemu = qemu.clone();
+
+        std::panic::set_hook(Box::new(move |i| {
+            *qemu.lock().unwrap() = None;
+            hook(i);
+        }));
+    }
 
     // Read our command.
     let mut line = String::new();
