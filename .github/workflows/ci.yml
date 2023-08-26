@@ -13,16 +13,33 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
-    - name: Add UEFI targets
-      run: |
-        rustup target add aarch64-unknown-uefi i686-unknown-uefi x86_64-unknown-uefi
     - name: Check code styles
       run: cargo fmt --check
     - name: Run Clippy
       run: cargo clippy --workspace -- -D warnings
-    - name: Build for aarch64-unknown-uefi
-      run: cargo build --target aarch64-unknown-uefi
-    - name: Build for i686-unknown-uefi
-      run: cargo build --target i686-unknown-uefi
-    - name: Build for x86_64-unknown-uefi
-      run: cargo build --target x86_64-unknown-uefi
+    - name: Install system packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ovmf ovmf-ia32 qemu-efi-aarch64 qemu-system-arm qemu-system-x86
+    - name: Add UEFI targets
+      run: |
+        rustup target add aarch64-unknown-uefi i686-unknown-uefi x86_64-unknown-uefi
+    - name: Generate test configurations
+      run: |
+        [qemu.aarch64-unknown-uefi]
+        bin = "qemu-system-aarch64"
+        firmware = "/usr/share/AAVMF/AAVMF_CODE.fd"
+        nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
+
+        [qemu.i686-unknown-uefi]
+        bin = "qemu-system-i386"
+        firmware = "/usr/share/OVMF/OVMF32_CODE_4M.secboot.fd"
+        nvram = "/usr/share/OVMF/OVMF32_VARS_4M.fd"
+
+        [qemu.x86_64-unknown-uefi]
+        bin = "qemu-system-x86_64"
+        firmware = "/usr/share/OVMF/OVMF_CODE.fd"
+        nvram = "/usr/share/OVMF/OVMF_VARS.fd"
+      shell: cp -v {0} zfi.toml
+    - name: Run tests
+      run: cargo test
