@@ -105,12 +105,35 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
         }
     };
 
-    // Get application dependencies.
+    // Copy application dependencies.
     let cargo = std::fs::read_to_string(proj.join("Cargo.toml")).unwrap();
     let mut cargo = toml::from_str::<Cargo>(&cargo).unwrap();
 
     cargo.dev_dependencies.remove("zfi-testing");
     cargo.dependencies.extend(cargo.dev_dependencies.drain());
+
+    // Fix relative path.
+    for dep in cargo.dependencies.values_mut() {
+        let path = match dep {
+            Dependency::Complex { version: _, path } => match path {
+                Some(v) => v,
+                None => continue,
+            },
+            _ => continue,
+        };
+
+        if !Path::new(path.as_str()).is_relative() {
+            continue;
+        }
+
+        *path = proj
+            .join(path.as_str())
+            .canonicalize()
+            .unwrap()
+            .into_os_string()
+            .into_string()
+            .unwrap();
+    }
 
     // Check if the test being run is our test.
     if cargo.package.take().unwrap().name == "zfi" {
