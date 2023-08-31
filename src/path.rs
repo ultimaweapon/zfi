@@ -45,6 +45,12 @@ impl Path {
         buf
     }
 
+    pub fn to_media_file_path(&self) -> Option<&EfiStr> {
+        match self.read() {
+            PathNode::MediaFilePath(v) => Some(v),
+        }
+    }
+
     pub fn read(&self) -> PathNode<'_> {
         let p = &self.0[4..];
 

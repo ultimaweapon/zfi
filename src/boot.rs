@@ -237,7 +237,6 @@ pub enum AllocateType {
 }
 
 /// Represents an `EFI_MEMORY_TYPE`.
-#[allow(dead_code)]
 #[repr(C)]
 pub enum MemoryType {
     /// Not usable.

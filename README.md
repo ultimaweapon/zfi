@@ -108,6 +108,16 @@ the following placeholders with the appropriate value:
 Example:
 
 ```toml
+[qemu.aarch64-unknown-uefi]
+bin = "qemu-system-aarch64"
+firmware = "/usr/share/AAVMF/AAVMF_CODE.fd"
+nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
+
+[qemu.i686-unknown-uefi]
+bin = "qemu-system-i386"
+firmware = "/usr/share/edk2/ia32/OVMF_CODE.fd"
+nvram = "/usr/share/edk2/ia32/OVMF_VARS.fd"
+
 [qemu.x86_64-unknown-uefi]
 bin = "qemu-system-x86_64"
 firmware = "/usr/share/edk2/x64/OVMF_CODE.fd"
@@ -166,8 +176,10 @@ Keep in mind that you need to put everything your test needed in the same functi
 ### 0.1 to 0.2
 
 - `Path` is changed from sized type to unsized type. Any code that cast `Path` to a raw pointer need
-  to update otherwise you will got a fat pointer, which is Rust specific. You can get a raw pointer
-  via `Path::as_bytes()`.
+  to update otherwise you will got a fat pointer, which is Rust specific. You can get a pointer to
+  `EFI_DEVICE_PATH_PROTOCOL` via `Path::as_bytes()`.
+- `FileInfo` is changed from sized type to unsized type in the same way as `Path`.
+- `File::info()` now return `FileInfoBuf` instead of `Owned<FileInfo>` when success.
 
 ## Example Projects
 
