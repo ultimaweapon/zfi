@@ -1,7 +1,6 @@
 use crate::{EfiStr, Guid, Owned, Status, Time};
 use alloc::alloc::{alloc, dealloc, handle_alloc_error};
 use alloc::borrow::ToOwned;
-use alloc::boxed::Box;
 use bitflags::bitflags;
 use core::alloc::Layout;
 use core::borrow::{Borrow, BorrowMut};
@@ -9,7 +8,7 @@ use core::fmt::{Display, Formatter};
 use core::mem::zeroed;
 use core::ops::{Deref, DerefMut};
 use core::ptr::{null_mut, read};
-use core::slice::from_raw_parts_mut;
+use core::slice::{from_raw_parts, from_raw_parts_mut};
 
 /// Represents an `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL`.
 #[repr(C)]
@@ -159,7 +158,7 @@ impl File {
             let status = unsafe { (self.get_info)(self, &FileInfo::ID, &mut len, info) };
 
             if status == Status::SUCCESS {
-                break unsafe { from_raw_parts_mut(info, layout.size()) };
+                break info;
             }
 
             // Check if we need to try again.
@@ -173,7 +172,10 @@ impl File {
             layout = Layout::from_size_align(len, 8).unwrap();
         };
 
-        Ok(FileInfoBuf(unsafe { Box::from_raw(info) }))
+        Ok(FileInfoBuf {
+            buf: info,
+            len: layout.size(),
+        })
     }
 
     pub fn set_len(&mut self, len: u64) -> Result<(), FileSetLenError> {
@@ -321,12 +323,21 @@ impl ToOwned for FileInfo {
 
         unsafe { buf.copy_from_nonoverlapping(self.0.as_ptr(), len) };
 
-        FileInfoBuf(unsafe { Box::from_raw(from_raw_parts_mut(buf, len)) })
+        FileInfoBuf { buf, len }
     }
 }
 
 /// An owned version of [`FileInfo`].
-pub struct FileInfoBuf(Box<[u8]>); // We need to make sure the pointer is 8 bytes aligment.
+pub struct FileInfoBuf {
+    buf: *mut u8, // Must be 8 bytes aligment.
+    len: usize,
+}
+
+impl Drop for FileInfoBuf {
+    fn drop(&mut self) {
+        unsafe { dealloc(self.buf, Layout::from_size_align(self.len, 8).unwrap()) };
+    }
+}
 
 impl Deref for FileInfoBuf {
     type Target = FileInfo;
@@ -344,13 +355,13 @@ impl DerefMut for FileInfoBuf {
 
 impl Borrow<FileInfo> for FileInfoBuf {
     fn borrow(&self) -> &FileInfo {
-        unsafe { &*(self.0.as_ref() as *const [u8] as *const FileInfo) }
+        unsafe { &*(from_raw_parts(self.buf, self.len) as *const [u8] as *const FileInfo) }
     }
 }
 
 impl BorrowMut<FileInfo> for FileInfoBuf {
     fn borrow_mut(&mut self) -> &mut FileInfo {
-        unsafe { &mut *(self.0.as_mut() as *mut [u8] as *mut FileInfo) }
+        unsafe { &mut *(from_raw_parts_mut(self.buf, self.len) as *mut [u8] as *mut FileInfo) }
     }
 }
 
