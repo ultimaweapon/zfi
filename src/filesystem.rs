@@ -7,8 +7,7 @@ use core::borrow::{Borrow, BorrowMut};
 use core::fmt::{Display, Formatter};
 use core::mem::zeroed;
 use core::ops::{Deref, DerefMut};
-use core::ptr::{null_mut, read};
-use core::slice::{from_raw_parts, from_raw_parts_mut};
+use core::ptr::{null_mut, read, slice_from_raw_parts, slice_from_raw_parts_mut};
 
 /// Represents an `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL`.
 #[repr(C)]
@@ -355,13 +354,13 @@ impl DerefMut for FileInfoBuf {
 
 impl Borrow<FileInfo> for FileInfoBuf {
     fn borrow(&self) -> &FileInfo {
-        unsafe { &*(from_raw_parts(self.buf, self.len) as *const [u8] as *const FileInfo) }
+        unsafe { &*(slice_from_raw_parts(self.buf, self.len) as *const FileInfo) }
     }
 }
 
 impl BorrowMut<FileInfo> for FileInfoBuf {
     fn borrow_mut(&mut self) -> &mut FileInfo {
-        unsafe { &mut *(from_raw_parts_mut(self.buf, self.len) as *mut [u8] as *mut FileInfo) }
+        unsafe { &mut *(slice_from_raw_parts_mut(self.buf, self.len) as *mut FileInfo) }
     }
 }
 
