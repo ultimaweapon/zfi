@@ -4,26 +4,26 @@ use core::ops::{Deref, DerefMut};
 /// Encapsulate a pointer that need to be free by some mechanism.
 pub struct Owned<T> {
     ptr: *mut T,
-    dtor: Option<Box<dyn FnOnce(*mut T)>>,
+    dtor: Option<Dtor<T>>,
 }
 
 impl<T> Owned<T> {
     /// # Safety
     /// `ptr` must be valid.
-    pub unsafe fn new<D>(ptr: *mut T, dtor: D) -> Self
-    where
-        D: FnOnce(*mut T) + 'static,
-    {
+    pub unsafe fn new(ptr: *mut T, dtor: Dtor<T>) -> Self {
         Self {
             ptr,
-            dtor: Some(Box::new(dtor)),
+            dtor: Some(dtor),
         }
     }
 }
 
 impl<T> Drop for Owned<T> {
     fn drop(&mut self) {
-        self.dtor.take().unwrap()(self.ptr);
+        match self.dtor.take().unwrap() {
+            Dtor::Function(f) => f(self.ptr),
+            Dtor::Closure(f) => f(self.ptr),
+        }
     }
 }
 
@@ -51,4 +51,10 @@ impl<T> AsMut<T> for Owned<T> {
     fn as_mut(&mut self) -> &mut T {
         self
     }
+}
+
+/// A destructor for an object encapsulated by [`Owned`].
+pub enum Dtor<T> {
+    Function(fn(*mut T)),
+    Closure(Box<dyn FnOnce(*mut T)>),
 }

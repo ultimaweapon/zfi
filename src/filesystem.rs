@@ -1,4 +1,4 @@
-use crate::{EfiStr, Guid, Owned, Status, Time};
+use crate::{Dtor, EfiStr, Guid, Owned, Status, Time};
 use alloc::alloc::{alloc, dealloc, handle_alloc_error};
 use alloc::borrow::ToOwned;
 use bitflags::bitflags;
@@ -32,7 +32,7 @@ impl SimpleFileSystem {
         if status != Status::SUCCESS {
             Err(status)
         } else {
-            Ok(unsafe { Owned::new(root, File::dtor) })
+            Ok(unsafe { Owned::new(root, Dtor::Function(File::dtor)) })
         }
     }
 }
@@ -104,7 +104,7 @@ impl File {
         if status != Status::SUCCESS {
             Err(status)
         } else {
-            Ok(unsafe { Owned::new(out, Self::dtor) })
+            Ok(unsafe { Owned::new(out, Dtor::Function(Self::dtor)) })
         }
     }
 

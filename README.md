@@ -180,6 +180,7 @@ Keep in mind that you need to put everything your test needed in the same functi
   `EFI_DEVICE_PATH_PROTOCOL` via `Path::as_bytes()`.
 - `FileInfo` is changed from sized type to unsized type in the same way as `Path`.
 - `File::info()` now return `FileInfoBuf` instead of `Owned<FileInfo>` when success.
+- The second parameter of `Owned::new()` is changed to `Dtor`.
 
 ## Example Projects
 
