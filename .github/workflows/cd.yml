@@ -12,5 +12,11 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
-    - name: Publish crate
+    - name: Publish zfi-macros
+      run: cargo publish -p zfi-macros
+    - name: Publish zfi
       run: cargo publish
+    - name: Publish zfi-testing-macros
+      run: cargo publish -p zfi-testing-macros
+    - name: Publish zfi-testing
+      run: cargo publish -p zfi-testing

@@ -1,6 +1,9 @@
 [package]
 name = "zfi-testing"
+description = "UEFI testing framework"
 version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/ultimicro/zfi"
 edition = "2021"
 
 [dependencies]
@@ -9,4 +12,4 @@ gpt = "3.1"
 regex = "1.9"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.7"
-zfi-testing-macros = { path = "../testing-macros" }
+zfi-testing-macros = { version = "0.1", path = "../testing-macros" }
