@@ -57,6 +57,26 @@ fn panic_handler(info: &core::panic::PanicInfo) -> ! {
 static ALLOCATOR: zfi::PoolAllocator = zfi:PoolAllocator;
 ```
 
+You can use `zfi::main` macro if you prefer a less boilerplate:
+
+```rust
+#![no_std]
+#![no_main]
+
+use zfi::{pause, println, Status};
+
+// zfi::main will not enable the debug writer by default. See its documentation to see how to enable
+// the debug writer.
+#[zfi::main]
+fn main() -> Status {
+    // Use Image::current() to get the image handle.
+    println!("Hello, world!");
+    pause();
+
+    Status::SUCCESS
+}
+```
+
 To build the above example you need to add a UEFI target to Rust:
 
 ```sh

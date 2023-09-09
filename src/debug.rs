@@ -8,6 +8,9 @@ use core::cell::RefCell;
 use core::fmt::{Display, Formatter, Write};
 
 /// Prints to the debug log, with a newline.
+///
+/// This macro will do nothing if no debug writer specified during ZFI initialization. See
+/// [`debug_writer()`] for more information.
 #[macro_export]
 macro_rules! debugln {
     ($($args:tt)*) => {
@@ -20,6 +23,10 @@ macro_rules! debugln {
     };
 }
 
+/// Gets the debug writer that was specified as an argument of [`crate::init()`].
+///
+/// If you are using [`crate::main`] macro no debug writer is enable by default. See [`crate::main`]
+/// for how to enable the debug writer.
 pub fn debug_writer() -> Option<&'static RefCell<Box<dyn Write>>> {
     // SAFETY: This is safe because the only place that write DEBUG_WRITER is our init function.
     unsafe { DEBUG_WRITER.as_ref() }

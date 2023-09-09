@@ -173,11 +173,8 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data, r#"#![no_std]"#).unwrap();
     writeln!(data, r#"#![no_main]"#).unwrap();
     writeln!(data).unwrap();
-    writeln!(data, r#"extern crate alloc;"#).unwrap();
-    writeln!(data).unwrap();
-    writeln!(data, r#"#[no_mangle]"#).unwrap();
-    writeln!(data, r#"extern "efiapi" fn efi_main(image: &'static ::zfi::Image, st: &'static ::zfi::SystemTable) -> ::zfi::Status {{"#).unwrap();
-    writeln!(data, r#"    unsafe {{ ::zfi::init(image, st, None) }};"#).unwrap();
+    writeln!(data, r#"#[::zfi::main(no_ph)]"#).unwrap();
+    writeln!(data, r#"fn main() -> ::zfi::Status {{"#).unwrap();
     writeln!(data, r#"{}"#, &body[1..(body.len() - 1)]).unwrap();
     writeln!(data, r#"    ::zfi::println!("zfi:ok");"#).unwrap();
     writeln!(data, r#"    loop {{}}"#).unwrap();
@@ -217,13 +214,6 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     writeln!(data).unwrap();
     writeln!(data, r#"    loop {{}}"#).unwrap();
     writeln!(data, r#"}}"#).unwrap();
-    writeln!(data).unwrap();
-    writeln!(data, r#"#[global_allocator]"#).unwrap();
-    writeln!(
-        data,
-        r#"static ALLOCATOR: ::zfi::PoolAllocator = ::zfi::PoolAllocator;"#
-    )
-    .unwrap();
 
     // Write src/main.rs.
     path.push("main.rs");
