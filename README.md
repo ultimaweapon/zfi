@@ -206,10 +206,6 @@ Keep in mind that you need to put everything your test needed in the same functi
 
 - [TCG Boot](https://github.com/ultimaweapon/tcg-boot)
 
-## Commercial Support
-
-Please contact hello@ultima.inc if you need commercial support.
-
 ## License
 
 MIT
