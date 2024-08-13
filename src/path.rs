@@ -12,7 +12,7 @@ use core::slice::from_raw_parts;
 pub struct Path([u8]);
 
 impl Path {
-    pub const EMPTY: &Path = unsafe { Self::new_unchecked(&[0x7F, 0xFF, 0x04, 0x00]) };
+    pub const EMPTY: &'static Path = unsafe { Self::new_unchecked(&[0x7F, 0xFF, 0x04, 0x00]) };
 
     /// # Safety
     /// `data` must be a valid device path.
@@ -29,7 +29,7 @@ impl Path {
         let mut l: usize;
 
         while *p != 0x7F || *p.add(1) != 0xFF {
-            l = read_unaligned::<u16>(p.add(2) as _).try_into().unwrap();
+            l = read_unaligned::<u16>(p.add(2) as _).into();
             t += l;
             p = p.add(l);
         }
@@ -139,6 +139,12 @@ impl PathBuf {
     }
 }
 
+impl Default for PathBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Deref for PathBuf {
     type Target = Path;
 
@@ -182,9 +188,7 @@ impl<'a> Iterator for PathNodes<'a> {
         }
 
         // Move to next node.
-        let l: usize = u16::from_ne_bytes(p[2..4].try_into().unwrap())
-            .try_into()
-            .unwrap();
+        let l: usize = u16::from_ne_bytes(p[2..4].try_into().unwrap()).into();
 
         self.0 = &p[l..];
 

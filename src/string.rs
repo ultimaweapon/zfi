@@ -12,7 +12,7 @@ use core::str::FromStr;
 pub struct EfiStr([u16]);
 
 impl EfiStr {
-    pub const EMPTY: &Self = unsafe { Self::new_unchecked(&[0]) };
+    pub const EMPTY: &'static Self = unsafe { Self::new_unchecked(&[0]) };
 
     /// # Safety
     /// `data` must be:
