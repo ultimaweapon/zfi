@@ -1,6 +1,6 @@
 use self::qemu::parse_qemu_attribute;
 use proc_macro::TokenStream;
-use syn::Error;
+use syn::{parse_macro_input, Error, ItemFn};
 
 mod qemu;
 
@@ -10,7 +10,9 @@ mod qemu;
 /// must put everything that are needed within this function.
 #[proc_macro_attribute]
 pub fn qemu(_: TokenStream, item: TokenStream) -> TokenStream {
-    parse_qemu_attribute(item.into())
+    let item = parse_macro_input!(item as ItemFn);
+
+    parse_qemu_attribute(item)
         .unwrap_or_else(Error::into_compile_error)
         .into()
 }

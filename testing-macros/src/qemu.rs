@@ -1,61 +1,21 @@
-use proc_macro2::{Delimiter, Group, Span, TokenStream, TokenTree};
-use quote::quote_spanned;
+use proc_macro2::{Span, TokenStream};
+use quote::ToTokens;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env::VarError;
 use std::fmt::Write;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
-use syn::Error;
+use syn::{parse_quote, Error, ItemFn};
 
-pub fn parse_qemu_attribute(item: TokenStream) -> Result<TokenStream, Error> {
-    // Get the function body.
-    let mut output = Vec::new();
-    let mut state = State::Start;
-    let mut name = None;
-    let mut body = None;
-
-    for t in item {
-        match &state {
-            State::Start => match &t {
-                TokenTree::Ident(i) if i == "fn" => state = State::Fn,
-                _ => {}
-            },
-            State::Fn => match &t {
-                TokenTree::Ident(i) => {
-                    name = Some(i.to_string());
-                    state = State::FnName;
-                }
-                _ => unreachable!(),
-            },
-            State::FnName => match &t {
-                TokenTree::Group(g) if g.delimiter() == Delimiter::Parenthesis => {
-                    state = State::Params
-                }
-                _ => {}
-            },
-            State::Params => match t {
-                TokenTree::Group(g) if g.delimiter() == Delimiter::Brace => {
-                    body = Some(g);
-                    break;
-                }
-                _ => {}
-            },
-        }
-
-        output.push(t);
-    }
-
+pub fn parse_qemu_attribute(mut item: ItemFn) -> Result<TokenStream, Error> {
     // Get path for the integration test data.
-    let item = body.unwrap();
     let root = match std::env::var("CARGO_TARGET_TMPDIR") {
         Ok(v) => PathBuf::from(v),
         Err(e) => match e {
             VarError::NotPresent => {
                 // We are not running by the integration test, keep the original function body.
-                output.push(TokenTree::Group(item));
-
-                return Ok(TokenStream::from_iter(output));
+                return Ok(item.into_token_stream());
             }
             VarError::NotUnicode(_) => {
                 return Err(Error::new(
@@ -67,21 +27,19 @@ pub fn parse_qemu_attribute(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     // Generate a test project.
-    let name = name.unwrap();
-    let span = item.span();
+    let name = item.sig.ident.to_string();
+    let body = item.block.brace_token.span.join().source_text().unwrap();
 
-    generate_test(root.join("project"), &name, &span.source_text().unwrap())?;
+    generate_test(root.join("project"), &name, &body)?;
 
     // Construct a new body.
     let root = root.to_str().unwrap();
-    let body = Group::new(
-        Delimiter::Brace,
-        quote_spanned!(span=> ::zfi_testing::run_qemu_test(::std::path::Path::new(#root));),
-    );
 
-    output.push(TokenTree::Group(body));
+    item.block = Box::new(parse_quote!({
+        ::zfi_testing::run_qemu_test(::std::path::Path::new(#root));
+    }));
 
-    Ok(TokenStream::from_iter(output))
+    Ok(item.into_token_stream())
 }
 
 fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), Error> {
@@ -221,13 +179,6 @@ fn generate_test<P: AsRef<Path>>(dir: P, name: &str, body: &str) -> Result<(), E
     std::fs::write(&path, data).unwrap();
 
     Ok(())
-}
-
-enum State {
-    Start,
-    Fn,
-    FnName,
-    Params,
 }
 
 #[derive(Serialize, Deserialize)]
