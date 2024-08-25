@@ -4,7 +4,7 @@ use gpt::mbr::ProtectiveMBR;
 use gpt::partition_types::EFI;
 use gpt::GptConfig;
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 use std::fs::{create_dir_all, File};
@@ -19,10 +19,129 @@ use std::sync::{Arc, Mutex};
 /// `efi_main`.
 ///
 /// The project will be created as a sub-directory of `dest`.
-pub fn gen_qemu_test(dest: impl AsRef<Path>, name: &str, body: &str) -> PathBuf {
-    let root = dest
-        .as_ref()
-        .join(format!("{}-{}", name, blake3::hash(body.as_bytes())));
+pub fn gen_qemu_test(proj: PathBuf, mut root: PathBuf, name: &str, body: &str) -> PathBuf {
+    // Generate a unique name for root directory.
+    root.push(format!("{}-{}", name, blake3::hash(body.as_bytes())));
+
+    // Create project directory.
+    let dest = root.join("project");
+
+    create_dir_all(&dest).unwrap();
+
+    // Copy dev-dependencies from the project.
+    let cargo = std::fs::read_to_string(proj.join("Cargo.toml")).unwrap();
+    let mut cargo = toml::from_str::<Cargo>(&cargo).unwrap();
+
+    cargo.dev_dependencies.remove("zfi-testing");
+    cargo.dependencies.extend(cargo.dev_dependencies.drain());
+
+    // Convert relative path to full path.
+    for dep in cargo.dependencies.values_mut() {
+        let path = match dep {
+            Dependency::Complex {
+                version: _,
+                path: Some(v),
+            } => v,
+            _ => continue,
+        };
+
+        if !Path::new(path.as_str()).is_relative() {
+            continue;
+        }
+
+        *path = proj
+            .join(path.as_str())
+            .canonicalize()
+            .unwrap()
+            .into_os_string()
+            .into_string()
+            .unwrap();
+    }
+
+    // Check if the test being run is our test.
+    if cargo.package.take().unwrap().name == "zfi" {
+        cargo.dependencies.remove("zfi-macros");
+        cargo.dependencies.insert(
+            String::from("zfi"),
+            Dependency::Complex {
+                version: None,
+                path: Some(proj.into_os_string().into_string().unwrap()),
+            },
+        );
+    }
+
+    // Create Cargo.toml.
+    let mut data = String::new();
+
+    writeln!(data, r#"[package]"#).unwrap();
+    writeln!(data, r#"name = "{name}""#).unwrap();
+    writeln!(data, r#"version = "0.1.0""#).unwrap();
+    writeln!(data, r#"edition = "2021""#).unwrap();
+    writeln!(data).unwrap();
+    data.push_str(&toml::to_string_pretty(&cargo).unwrap());
+    writeln!(data).unwrap();
+    writeln!(data, r#"[workspace]"#).unwrap();
+    writeln!(data, r#"members = []"#).unwrap();
+
+    std::fs::write(dest.join("Cargo.toml"), data).unwrap();
+
+    // Create src directory.
+    let mut path = dest.join("src");
+
+    create_dir_all(&path).unwrap();
+
+    // Generate src/main.rs.
+    let mut data = String::new();
+
+    writeln!(data, r#"#![no_std]"#).unwrap();
+    writeln!(data, r#"#![no_main]"#).unwrap();
+    writeln!(data).unwrap();
+    writeln!(data, r#"#[::zfi::main(no_ph)]"#).unwrap();
+    writeln!(data, r#"fn main() -> ::zfi::Status {{"#).unwrap();
+    writeln!(data, r#"{}"#, &body[1..(body.len() - 1)]).unwrap();
+    writeln!(data, r#"    ::zfi::println!("zfi:ok");"#).unwrap();
+    writeln!(data, r#"    loop {{}}"#).unwrap();
+    writeln!(data, r#"}}"#).unwrap();
+    writeln!(data).unwrap();
+    writeln!(data, r#"#[panic_handler]"#).unwrap();
+    writeln!(
+        data,
+        r#"fn panic_handler(i: &::core::panic::PanicInfo) -> ! {{"#
+    )
+    .unwrap();
+    writeln!(data, r#"    let l = i.location().unwrap();"#).unwrap();
+    writeln!(data).unwrap();
+    writeln!(
+        data,
+        r#"    ::zfi::println!("zfi:panic:{{}}:{{}}:{{}}", l.file(), l.line(), l.column());"#
+    )
+    .unwrap();
+    writeln!(data).unwrap();
+    writeln!(
+        data,
+        r#"    if let Some(&p) = i.payload().downcast_ref::<&str>() {{"#
+    )
+    .unwrap();
+    writeln!(data, r#"        ::zfi::println!("{{p}}");"#).unwrap();
+    writeln!(
+        data,
+        r#"    }} else if let Some(p) = i.payload().downcast_ref::<::alloc::string::String>() {{"#
+    )
+    .unwrap();
+    writeln!(data, r#"        ::zfi::println!("{{p}}");"#).unwrap();
+    writeln!(data, r#"    }} else {{"#).unwrap();
+    writeln!(data, r#"        ::zfi::println!("{{i}}");"#).unwrap();
+    writeln!(data, r#"    }}"#).unwrap();
+    writeln!(data).unwrap();
+    writeln!(data, r#"    ::zfi::println!("zfi:end");"#).unwrap();
+    writeln!(data).unwrap();
+    writeln!(data, r#"    loop {{}}"#).unwrap();
+    writeln!(data, r#"}}"#).unwrap();
+
+    // Write src/main.rs.
+    path.push("main.rs");
+
+    std::fs::write(&path, data).unwrap();
 
     root
 }
@@ -303,6 +422,30 @@ fn report_failure(msg: &str) {
     } else {
         msg.to_owned()
     });
+}
+
+#[derive(Serialize, Deserialize)]
+struct Cargo {
+    package: Option<Package>,
+    dependencies: HashMap<String, Dependency>,
+
+    #[serde(rename = "dev-dependencies")]
+    dev_dependencies: HashMap<String, Dependency>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Package {
+    name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum Dependency {
+    Simple(String),
+    Complex {
+        version: Option<String>,
+        path: Option<String>,
+    },
 }
 
 #[derive(Deserialize)]
