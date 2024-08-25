@@ -7,6 +7,7 @@ repository = "https://github.com/ultimicro/zfi"
 edition = "2021"
 
 [dependencies]
+blake3 = "1.5.4"
 fatfs = "0.3"
 gpt = "3.1"
 regex = "1.9"

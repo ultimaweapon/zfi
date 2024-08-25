@@ -36,6 +36,8 @@ pub fn parse_qemu_attribute(mut item: ItemFn) -> Result<TokenStream, Error> {
     let root = root.to_str().unwrap();
 
     item.block = Box::new(parse_quote!({
+        let dest = std::path::PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
+        ::zfi_testing::gen_qemu_test(dest, #name, #body);
         ::zfi_testing::run_qemu_test(::std::path::Path::new(#root));
     }));
 
