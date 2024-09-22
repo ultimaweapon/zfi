@@ -3,8 +3,9 @@ name = "zfi"
 description = "Zero-cost and safe interface to UEFI firmware"
 version = "0.2.0"
 license = "MIT"
-repository = "https://github.com/ultimicro/zfi"
+repository = "https://github.com/ultimaweapon/zfi"
 edition = "2021"
+rust-version = "1.81"
 
 [dependencies]
 bitflags = "2.4"

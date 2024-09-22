@@ -116,23 +116,7 @@ pub fn gen_qemu_test(proj: PathBuf, mut root: PathBuf, name: &str, body: &str) -
         r#"    ::zfi::println!("zfi:panic:{{}}:{{}}:{{}}", l.file(), l.line(), l.column());"#
     )
     .unwrap();
-    writeln!(data).unwrap();
-    writeln!(
-        data,
-        r#"    if let Some(&p) = i.payload().downcast_ref::<&str>() {{"#
-    )
-    .unwrap();
-    writeln!(data, r#"        ::zfi::println!("{{p}}");"#).unwrap();
-    writeln!(
-        data,
-        r#"    }} else if let Some(p) = i.payload().downcast_ref::<::alloc::string::String>() {{"#
-    )
-    .unwrap();
-    writeln!(data, r#"        ::zfi::println!("{{p}}");"#).unwrap();
-    writeln!(data, r#"    }} else {{"#).unwrap();
-    writeln!(data, r#"        ::zfi::println!("{{i}}");"#).unwrap();
-    writeln!(data, r#"    }}"#).unwrap();
-    writeln!(data).unwrap();
+    writeln!(data, r#"    ::zfi::println!("{{}}", i.message());"#).unwrap();
     writeln!(data, r#"    ::zfi::println!("zfi:end");"#).unwrap();
     writeln!(data).unwrap();
     writeln!(data, r#"    loop {{}}"#).unwrap();
