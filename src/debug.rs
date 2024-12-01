@@ -30,7 +30,9 @@ macro_rules! debugln {
 pub fn debug_writer() -> Option<&'static RefCell<Box<dyn Write>>> {
     // SAFETY: This is safe because the only place that write DEBUG_WRITER is our init function.
     #[allow(static_mut_refs)]
-    unsafe { DEBUG_WRITER.as_ref() }
+    unsafe {
+        DEBUG_WRITER.as_ref()
+    }
 }
 
 /// A debug writer that write the debug log to a text file.
