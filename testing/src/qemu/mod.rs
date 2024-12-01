@@ -294,7 +294,6 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
 
     qemu.stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
         .arg("-nographic")
         .arg("-drive")
         .arg(format!(
