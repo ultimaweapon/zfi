@@ -8,7 +8,10 @@ use core::slice::{from_raw_parts, IterMut};
 use core::str::FromStr;
 
 /// A borrowed EFI string. The string is always have NUL at the end.
+///
+/// You can use [str](crate::str) macro to create a value of this type.
 #[repr(transparent)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct EfiStr([u16]);
 
 impl EfiStr {

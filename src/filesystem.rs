@@ -1,13 +1,11 @@
 use crate::{Dtor, EfiStr, Guid, Owned, Status, Time};
 use alloc::alloc::{alloc, dealloc, handle_alloc_error};
-use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
 use bitflags::bitflags;
 use core::alloc::Layout;
-use core::borrow::{Borrow, BorrowMut};
 use core::fmt::{Display, Formatter};
 use core::mem::zeroed;
-use core::ops::{Deref, DerefMut};
-use core::ptr::{null_mut, read, slice_from_raw_parts, slice_from_raw_parts_mut};
+use core::ptr::null_mut;
 
 /// Represents an `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL`.
 #[repr(C)]
@@ -141,12 +139,11 @@ impl File {
         }
     }
 
-    pub fn info(&self) -> Result<FileInfoBuf, Status> {
+    pub fn info(&self) -> Result<Box<FileInfo>, Status> {
         // Try until the buffer is enought.
-        let mut layout = Layout::from_size_align(0x52, 8).unwrap();
-        let info = loop {
+        let mut layout = FileInfo::memory_layout(1);
+        let (mut info, len) = loop {
             // Allocate a buffer.
-            let mut len = layout.size();
             let info = unsafe { alloc(layout) };
 
             if info.is_null() {
@@ -154,10 +151,11 @@ impl File {
             }
 
             // Get info.
+            let mut len = layout.size();
             let status = unsafe { (self.get_info)(self, &FileInfo::ID, &mut len, info) };
 
             if status == Status::SUCCESS {
-                break info;
+                break (info, len);
             }
 
             // Check if we need to try again.
@@ -168,13 +166,37 @@ impl File {
             }
 
             // Update memory layout and try again.
-            layout = Layout::from_size_align(len, 8).unwrap();
+            layout = FileInfo::memory_layout(len.checked_sub(0x50).unwrap() / 2);
         };
 
-        Ok(FileInfoBuf {
-            buf: info,
-            len: layout.size(),
-        })
+        // Check if layout matched.
+        let name = len.checked_sub(0x50).unwrap() / 2;
+        let new = FileInfo::memory_layout(name);
+
+        if new != layout {
+            // Allocate a new buffer to match with final layout.
+            let buf = unsafe { alloc(new) };
+
+            if buf.is_null() {
+                handle_alloc_error(new)
+            }
+
+            // Copy data.
+            unsafe { buf.copy_from_nonoverlapping(info, len) };
+            unsafe { dealloc(info, layout) };
+
+            info = buf;
+            layout = new;
+        }
+
+        // Cast to FileInfo. Pointer casting here may looks weird but it is how DST works.
+        // See https://stackoverflow.com/a/64121094/1829232 for more details.
+        let info = core::ptr::slice_from_raw_parts_mut::<u16>(info.cast(), name) as *mut FileInfo;
+        let info = unsafe { Box::from_raw(info) };
+
+        assert_eq!(size_of_val(info.as_ref()), layout.size());
+
+        Ok(info)
     }
 
     pub fn set_len(&mut self, len: u64) -> Result<(), FileSetLenError> {
@@ -189,13 +211,15 @@ impl File {
         }
 
         // Update the info.
-        *info.file_size_mut() = len;
-        *info.create_time_mut() = unsafe { zeroed() };
-        *info.last_accessed_mut() = unsafe { zeroed() };
-        *info.last_modified_mut() = unsafe { zeroed() };
+        info.set_file_size(len);
+        info.set_create_time(unsafe { zeroed() });
+        info.set_last_accessed(unsafe { zeroed() });
+        info.set_last_modified(unsafe { zeroed() });
 
         // Set the info.
-        let status = unsafe { (self.set_info)(self, &FileInfo::ID, info.0.len(), info.0.as_ptr()) };
+        let len = 0x50 + info.file_name.len() * 2;
+        let info = info.as_ref() as *const FileInfo as *const u8;
+        let status = unsafe { (self.set_info)(self, &FileInfo::ID, len, info) };
 
         if status != Status::SUCCESS {
             Err(FileSetLenError::SetInfoFailed(status))
@@ -230,6 +254,7 @@ bitflags! {
 bitflags! {
     /// Attributes of the file to create.
     #[repr(transparent)]
+    #[derive(Clone, Copy)]
     pub struct FileAttributes: u64 {
         const READ_ONLY = 0x0000000000000001;
         const HIDDEN = 0x0000000000000002;
@@ -240,12 +265,18 @@ bitflags! {
     }
 }
 
-/// A borrowed `EFI_FILE_INFO`.
-///
-/// Do not depend on a transparent representation as a slice because it will be removed in the
-/// future when a Dynamically Sized Type can be safely construct on stable Rust.
-#[repr(transparent)]
-pub struct FileInfo([u8]);
+/// Represents an `EFI_FILE_INFO`.
+#[repr(C)]
+pub struct FileInfo {
+    size: u64,
+    file_size: u64,
+    physical_size: u64,
+    create_time: Time,
+    last_access_time: Time,
+    modification_time: Time,
+    attribute: FileAttributes,
+    file_name: [u16],
+}
 
 impl FileInfo {
     pub const ID: Guid = Guid::new(
@@ -255,112 +286,80 @@ impl FileInfo {
         [0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b],
     );
 
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
+    pub fn file_size(&self) -> u64 {
+        self.file_size
     }
 
-    pub fn file_size(&self) -> u64 {
-        unsafe { read(self.0.as_ptr().add(0x08) as _) }
+    pub fn set_file_size(&mut self, v: u64) {
+        self.file_size = v;
     }
 
     pub fn file_size_mut(&mut self) -> &mut u64 {
-        unsafe { &mut *(self.0.as_mut_ptr().add(0x08) as *mut u64) }
+        &mut self.file_size
     }
 
     pub fn physical_size(&self) -> u64 {
-        unsafe { read(self.0.as_ptr().add(0x10) as _) }
+        self.physical_size
     }
 
     pub fn create_time(&self) -> &Time {
-        unsafe { &*(self.0.as_ptr().add(0x18) as *const Time) }
+        &self.create_time
+    }
+
+    pub fn set_create_time(&mut self, v: Time) {
+        self.create_time = v;
     }
 
     pub fn create_time_mut(&mut self) -> &mut Time {
-        unsafe { &mut *(self.0.as_mut_ptr().add(0x18) as *mut Time) }
+        &mut self.create_time
     }
 
     pub fn last_accessed(&self) -> &Time {
-        unsafe { &*(self.0.as_ptr().add(0x28) as *const Time) }
+        &self.last_access_time
+    }
+
+    pub fn set_last_accessed(&mut self, v: Time) {
+        self.last_access_time = v;
     }
 
     pub fn last_accessed_mut(&mut self) -> &mut Time {
-        unsafe { &mut *(self.0.as_mut_ptr().add(0x28) as *mut Time) }
+        &mut self.last_access_time
     }
 
     pub fn last_modified(&self) -> &Time {
-        unsafe { &*(self.0.as_ptr().add(0x38) as *const Time) }
+        &self.modification_time
+    }
+
+    pub fn set_last_modified(&mut self, v: Time) {
+        self.modification_time = v;
     }
 
     pub fn last_modified_mut(&mut self) -> &mut Time {
-        unsafe { &mut *(self.0.as_mut_ptr().add(0x38) as *mut Time) }
+        &mut self.modification_time
     }
 
     pub fn attributes(&self) -> FileAttributes {
-        unsafe { read(self.0.as_ptr().add(0x48) as _) }
+        self.attribute
+    }
+
+    pub fn set_attributes(&mut self, v: FileAttributes) {
+        self.attribute = v;
     }
 
     pub fn attributes_mut(&mut self) -> &mut FileAttributes {
-        unsafe { &mut *(self.0.as_mut_ptr().add(0x48) as *mut FileAttributes) }
+        &mut self.attribute
     }
 
     pub fn file_name(&self) -> &EfiStr {
-        unsafe { EfiStr::from_ptr(self.0.as_ptr().add(0x50) as _) }
+        // SAFETY: UEFI specs guarantee null-terminated.
+        unsafe { EfiStr::new_unchecked(&self.file_name) }
     }
-}
 
-impl ToOwned for FileInfo {
-    type Owned = FileInfoBuf;
-
-    fn to_owned(&self) -> Self::Owned {
-        let len = self.0.len();
-        let layout = Layout::from_size_align(len, 8).unwrap();
-        let buf = unsafe { alloc(layout) };
-
-        if buf.is_null() {
-            handle_alloc_error(layout);
-        }
-
-        unsafe { buf.copy_from_nonoverlapping(self.0.as_ptr(), len) };
-
-        FileInfoBuf { buf, len }
-    }
-}
-
-/// An owned version of [`FileInfo`].
-pub struct FileInfoBuf {
-    buf: *mut u8, // Must be 8 bytes aligment.
-    len: usize,
-}
-
-impl Drop for FileInfoBuf {
-    fn drop(&mut self) {
-        unsafe { dealloc(self.buf, Layout::from_size_align(self.len, 8).unwrap()) };
-    }
-}
-
-impl Deref for FileInfoBuf {
-    type Target = FileInfo;
-
-    fn deref(&self) -> &Self::Target {
-        self.borrow()
-    }
-}
-
-impl DerefMut for FileInfoBuf {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.borrow_mut()
-    }
-}
-
-impl Borrow<FileInfo> for FileInfoBuf {
-    fn borrow(&self) -> &FileInfo {
-        unsafe { &*(slice_from_raw_parts(self.buf, self.len) as *const FileInfo) }
-    }
-}
-
-impl BorrowMut<FileInfo> for FileInfoBuf {
-    fn borrow_mut(&mut self) -> &mut FileInfo {
-        unsafe { &mut *(slice_from_raw_parts_mut(self.buf, self.len) as *mut FileInfo) }
+    pub fn memory_layout(name: usize) -> Layout {
+        Layout::from_size_align(0x50, 8)
+            .and_then(move |b| b.extend(Layout::array::<u16>(name).unwrap()))
+            .map(|v| v.0.pad_to_align())
+            .unwrap()
     }
 }
 
