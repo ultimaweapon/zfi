@@ -164,7 +164,7 @@ pub enum PathNode<'a> {
     MediaFilePath(&'a EfiStr),
 }
 
-impl<'a> Display for PathNode<'a> {
+impl Display for PathNode<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             PathNode::MediaFilePath(p) => p.fmt(f),

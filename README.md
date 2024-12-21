@@ -196,15 +196,11 @@ Keep in mind that you need to put everything your test needed in the same functi
 ### 0.1 to 0.2
 
 - `Path` is changed from sized type to unsized type. Any code that cast `Path` to a raw pointer need
-  to update otherwise you will got a fat pointer, which is Rust specific. You can get a pointer to
+  to update otherwise you will get a fat pointer, which is Rust specific. You can get a pointer to
   `EFI_DEVICE_PATH_PROTOCOL` via `Path::as_bytes()`.
 - `FileInfo` is changed from sized type to unsized type in the same way as `Path`.
 - `File::info()` now return `Box<FileInfo>` instead of `Owned<FileInfo>` when success.
 - The second parameter of `Owned::new()` is changed to `Dtor`.
-
-## Example Projects
-
-- [TCG Boot](https://github.com/ultimaweapon/tcg-boot)
 
 ## License
 
