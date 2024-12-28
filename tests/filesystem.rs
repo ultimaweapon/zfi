@@ -3,9 +3,9 @@ use zfi_testing::qemu;
 #[test]
 #[qemu]
 fn file_info() {
-    use zfi::{FileAttributes, FileModes, Image};
+    use zfi::{current_image, FileAttributes, FileModes};
 
-    let image = Image::current().proto();
+    let image = current_image().proto();
     let fs = image.device().file_system().unwrap();
     let root = fs.open().unwrap();
     let file = root
@@ -25,9 +25,9 @@ fn file_info() {
 #[test]
 #[qemu]
 fn create() {
-    use zfi::{str, FileAttributes, Image};
+    use zfi::{current_image, str, FileAttributes};
 
-    let image = Image::current().proto();
+    let image = current_image().proto();
     let fs = image.device().file_system().unwrap();
     let root = fs.open().unwrap();
 

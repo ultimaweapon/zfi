@@ -7,10 +7,9 @@ use core::fmt::Write;
 #[macro_export]
 macro_rules! println {
     ($($args:tt)*) => {{
-        use $crate::SystemTable;
         use ::core::fmt::Write;
 
-        let mut dev = SystemTable::current().stdout();
+        let mut dev = $crate::system_table().stdout();
 
         dev.write_fmt(::core::format_args!($($args)*)).unwrap();
         dev.write_eol().unwrap();
@@ -21,10 +20,9 @@ macro_rules! println {
 #[macro_export]
 macro_rules! eprintln {
     ($($args:tt)*) => {{
-        use $crate::SystemTable;
         use ::core::fmt::Write;
 
-        let mut dev = SystemTable::current().stderr();
+        let mut dev = $crate::system_table().stderr();
 
         dev.write_fmt(::core::format_args!($($args)*)).unwrap();
         dev.write_eol().unwrap();

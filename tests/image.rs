@@ -3,9 +3,9 @@ use zfi_testing::qemu;
 #[test]
 #[qemu]
 fn proto() {
-    use zfi::{str, Image, PathBuf};
+    use zfi::{current_image, str, PathBuf};
 
-    let proto = Image::current().proto();
+    let proto = current_image().proto();
     let mut path = PathBuf::new();
 
     path.push_media_file_path(if cfg!(target_arch = "x86_64") {
