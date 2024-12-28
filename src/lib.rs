@@ -81,6 +81,12 @@ pub unsafe fn init(
     }
 }
 
+/// Returns `im` that was passed to [`init()`].
+pub fn current_image() -> &'static Image {
+    // SAFETY: This is safe because the only place that write IMAGE is our init function.
+    unsafe { &*IMAGE }
+}
+
 /// Returns `st` that was passed to [`init()`].
 pub fn system_table() -> &'static SystemTable {
     // SAFETY: This is safe because the only place that write ST is our init function.

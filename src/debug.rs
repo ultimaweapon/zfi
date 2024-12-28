@@ -1,6 +1,6 @@
 use crate::{
-    EfiChar, EfiString, File, FileAttributes, FileCreateError, Image, Owned, Path, PathNode,
-    Status, DEBUG_WRITER,
+    current_image, EfiChar, EfiString, File, FileAttributes, FileCreateError, Owned, Path,
+    PathNode, Status, DEBUG_WRITER,
 };
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
@@ -44,7 +44,7 @@ impl DebugFile {
     /// `ext` is a file extension without leading dot.
     pub fn next_to_image(ext: &str) -> Result<Self, DebugFileError> {
         // Get FS on the device where the image is located.
-        let im = Image::current().proto();
+        let im = current_image().proto();
         let fs = match im.device().file_system() {
             Some(v) => v,
             None => return Err(DebugFileError::UnsupportedImageLocation),

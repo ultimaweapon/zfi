@@ -1,5 +1,7 @@
 use crate::event::Event;
-use crate::{Device, Guid, Image, Pages, Path, Status, TableHeader, IMAGE, PAGE_SIZE};
+use crate::{
+    current_image, Device, Guid, Image, Pages, Path, Status, TableHeader, IMAGE, PAGE_SIZE,
+};
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::mem::size_of;
@@ -181,7 +183,7 @@ impl BootServices {
     /// functions that are automatically called by Rust (e.g. when the value is dropped)! Usually
     /// this method will be called right before transfering the control to the OS kernel.
     pub unsafe fn exit_boot_services(&self, map_key: usize) -> Result<(), Status> {
-        let status = (self.exit_boot_services)(Image::current(), map_key);
+        let status = (self.exit_boot_services)(current_image(), map_key);
 
         if status != Status::SUCCESS {
             Err(status)

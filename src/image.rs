@@ -5,11 +5,6 @@ use core::ptr::null;
 pub struct Image(());
 
 impl Image {
-    pub fn current() -> &'static Self {
-        // SAFETY: This is safe because the only place that write IMAGE is our init function.
-        unsafe { &*IMAGE }
-    }
-
     /// Gets the `EFI_LOADED_IMAGE_PROTOCOL` from this image.
     pub fn proto(&self) -> &LoadedImage {
         static ID: Guid = Guid::new(
