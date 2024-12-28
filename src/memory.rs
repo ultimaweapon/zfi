@@ -1,8 +1,12 @@
-use crate::{AllocateType, MemoryDescriptor, MemoryType, Status, SystemTable};
+use crate::{system_table, AllocateType, MemoryDescriptor, MemoryType, Status};
 use alloc::vec::Vec;
 use core::ops::{Deref, DerefMut};
 
-pub const PAGE_SIZE: usize = 4096; // Getting from EFI_BOOT_SERVICES.FreePages() specs.
+/// Page size of the system, in bytes.
+///
+/// Although the UEFI supports multiple ISA but it is required a fixed page size as stated in
+/// `EFI_BOOT_SERVICES.FreePages` docs.
+pub const PAGE_SIZE: usize = 4096;
 
 /// Gets how many pages required for a specified number of bytes.
 pub fn page_count(bytes: usize) -> usize {
@@ -16,15 +20,15 @@ pub fn allocate_pages(
     pages: usize,
     addr: u64,
 ) -> Result<Pages, Status> {
-    SystemTable::current()
+    system_table()
         .boot_services()
         .allocate_pages(at, mt, pages, addr)
 }
 
 /// Just a shortcut to [`super::BootServices::get_memory_map()`]. Do not discard the returned map if
-/// you want the key to use with [`super::BootServices::exit_boot_services()`].
+/// you want a key to use with [`super::BootServices::exit_boot_services()`].
 pub fn get_memory_map() -> Result<(Vec<MemoryDescriptor>, usize), Status> {
-    SystemTable::current().boot_services().get_memory_map()
+    system_table().boot_services().get_memory_map()
 }
 
 /// Encapsulate a pointer to one or more memory pages.
@@ -48,7 +52,7 @@ impl Pages {
 impl Drop for Pages {
     fn drop(&mut self) {
         unsafe {
-            SystemTable::current()
+            system_table()
                 .boot_services()
                 .free_pages(self.ptr, self.len / PAGE_SIZE)
                 .unwrap()

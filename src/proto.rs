@@ -1,14 +1,16 @@
-use crate::{Guid, OpenProtocolAttributes, Status, SystemTable};
+use crate::{system_table, Guid, OpenProtocolAttributes, Status};
 
+/// Invokes `EFI_BOOT_SERVICES.OpenProtocol`.
+///
 /// # Safety
 /// This function don't check anything so the caller is responsible to make sure all arguments is
 /// valid for `EFI_BOOT_SERVICES.OpenProtocol()`.
 pub unsafe fn get_protocol(handle: *const (), proto: &Guid) -> Option<*const ()> {
-    SystemTable::current()
-        .boot_services()
-        .get_protocol(handle, proto)
+    system_table().boot_services().get_protocol(handle, proto)
 }
 
+/// Invokes `EFI_BOOT_SERVICES.OpenProtocol`.
+///
 /// # Safety
 /// This method don't check anything so the caller is responsible to make sure all arguments is
 /// valid for `EFI_BOOT_SERVICES.OpenProtocol()`.
@@ -19,7 +21,7 @@ pub unsafe fn open_protocol(
     controller: *const (),
     attrs: OpenProtocolAttributes,
 ) -> Result<*const (), Status> {
-    SystemTable::current()
+    system_table()
         .boot_services()
         .open_protocol(handle, proto, agent, controller, attrs)
 }

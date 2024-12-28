@@ -1,5 +1,5 @@
 use crate::event::Event;
-use crate::{EfiStr, Status, SystemTable};
+use crate::{system_table, EfiStr, Status};
 use alloc::vec::Vec;
 use core::fmt::Write;
 
@@ -33,11 +33,12 @@ macro_rules! eprintln {
 
 /// Wait for a key stroke.
 pub fn pause() {
-    let st = SystemTable::current();
-    let bs = st.boot_services();
-    let stdin = st.stdin();
+    let stdin = system_table().stdin();
 
-    bs.wait_for_event(&[stdin.wait_for_key]).unwrap();
+    system_table()
+        .boot_services()
+        .wait_for_event(&[stdin.wait_for_key])
+        .unwrap();
 }
 
 /// Represents an `EFI_SIMPLE_TEXT_INPUT_PROTOCOL`.

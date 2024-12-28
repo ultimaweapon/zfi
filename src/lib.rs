@@ -57,6 +57,8 @@ static mut DEBUG_WRITER: Option<RefCell<Box<dyn Write>>> = None;
 /// This must be called before using any ZFI API. Usually you should call this right away as the
 /// first thing in the `efi_main`. See project README for an example.
 ///
+/// The function passed via `debug_writer` can use any ZFI API.
+///
 /// # Safety
 /// Calling this function more than once is undefined behavior.
 pub unsafe fn init(
@@ -77,4 +79,10 @@ pub unsafe fn init(
     if let Some(f) = debug_writer {
         DEBUG_WRITER = Some(RefCell::new(f()));
     }
+}
+
+/// Returns `st` that was passed to [`init()`].
+pub fn system_table() -> &'static SystemTable {
+    // SAFETY: This is safe because the only place that write ST is our init function.
+    unsafe { &*ST }
 }

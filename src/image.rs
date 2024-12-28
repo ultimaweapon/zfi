@@ -1,4 +1,4 @@
-use crate::{Device, Guid, OpenProtocolAttributes, Path, SystemTable, IMAGE};
+use crate::{system_table, Device, Guid, OpenProtocolAttributes, Path, SystemTable, IMAGE};
 use core::ptr::null;
 
 /// Represents an `EFI_HANDLE` for the image.
@@ -19,17 +19,17 @@ impl Image {
             [0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B],
         );
 
-        let st = SystemTable::current();
-        let bs = st.boot_services();
         let proto = unsafe {
-            bs.open_protocol(
-                self as *const Image as *const (),
-                &ID,
-                IMAGE.cast(),
-                null(),
-                OpenProtocolAttributes::GET_PROTOCOL,
-            )
-            .unwrap()
+            system_table()
+                .boot_services()
+                .open_protocol(
+                    self as *const Image as *const (),
+                    &ID,
+                    IMAGE.cast(),
+                    null(),
+                    OpenProtocolAttributes::GET_PROTOCOL,
+                )
+                .unwrap()
         };
 
         unsafe { &*(proto as *const LoadedImage) }

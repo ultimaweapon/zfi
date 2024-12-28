@@ -1,4 +1,4 @@
-use crate::{MemoryType, SystemTable};
+use crate::{system_table, MemoryType};
 use core::alloc::{GlobalAlloc, Layout};
 use core::mem::size_of;
 use core::ptr::{null_mut, read_unaligned, write_unaligned};
@@ -19,7 +19,7 @@ unsafe impl GlobalAlloc for PoolAllocator {
         size += size_of::<usize>();
 
         // Do allocation.
-        let mem = SystemTable::current()
+        let mem = system_table()
             .boot_services()
             .allocate_pool(MemoryType::LoaderData, size)
             .unwrap_or(null_mut());
@@ -50,9 +50,6 @@ unsafe impl GlobalAlloc for PoolAllocator {
         let ptr = ptr.sub(adjusted);
 
         // Free the memory.
-        SystemTable::current()
-            .boot_services()
-            .free_pool(ptr)
-            .unwrap();
+        system_table().boot_services().free_pool(ptr).unwrap();
     }
 }

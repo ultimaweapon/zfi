@@ -1,4 +1,4 @@
-use crate::{BootServices, RuntimeServices, SimpleTextInput, SimpleTextOutput, TableHeader, ST};
+use crate::{BootServices, RuntimeServices, SimpleTextInput, SimpleTextOutput, TableHeader};
 
 /// Represents an `EFI_SYSTEM_TABLE`.
 #[repr(C)]
@@ -17,11 +17,6 @@ pub struct SystemTable {
 }
 
 impl SystemTable {
-    pub fn current() -> &'static SystemTable {
-        // SAFETY: This is safe because the only place that write ST is our init function.
-        unsafe { &*ST }
-    }
-
     pub fn hdr(&self) -> &TableHeader {
         &self.hdr
     }

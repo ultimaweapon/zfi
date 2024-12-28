@@ -1,11 +1,11 @@
-use crate::{get_protocol, Guid, Path, SimpleFileSystem, Status, SystemTable};
+use crate::{get_protocol, system_table, Guid, Path, SimpleFileSystem, Status};
 
 /// Represents an `EFI_HANDLE` for a device.
 pub struct Device(());
 
 impl Device {
     pub fn locate<'a>(proto: &Guid, path: &'a Path) -> Result<(&'static Self, &'a Path), Status> {
-        SystemTable::current()
+        system_table()
             .boot_services()
             .locate_device_path(proto, path)
     }
