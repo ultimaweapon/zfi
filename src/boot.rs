@@ -194,7 +194,7 @@ impl BootServices {
     /// This method don't check anything so the caller is responsible to make sure all arguments is
     /// valid for `EFI_BOOT_SERVICES.OpenProtocol()`.
     pub unsafe fn get_protocol(&self, handle: *const (), proto: &Guid) -> Option<*const ()> {
-        let agent = IMAGE.unwrap() as *const Image as *const ();
+        let agent = IMAGE.cast();
         let attrs = OpenProtocolAttributes::GET_PROTOCOL;
 
         match self.open_protocol(handle, proto, agent, null(), attrs) {

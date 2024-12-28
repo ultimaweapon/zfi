@@ -7,7 +7,7 @@ pub struct Image(());
 impl Image {
     pub fn current() -> &'static Self {
         // SAFETY: This is safe because the only place that write IMAGE is our init function.
-        unsafe { IMAGE.unwrap() }
+        unsafe { &*IMAGE }
     }
 
     /// Gets the `EFI_LOADED_IMAGE_PROTOCOL` from this image.
@@ -25,7 +25,7 @@ impl Image {
             bs.open_protocol(
                 self as *const Image as *const (),
                 &ID,
-                IMAGE.unwrap() as *const Image as *const (),
+                IMAGE.cast(),
                 null(),
                 OpenProtocolAttributes::GET_PROTOCOL,
             )

@@ -23,6 +23,7 @@ pub use zfi_macros::*;
 use alloc::boxed::Box;
 use core::cell::RefCell;
 use core::fmt::Write;
+use core::ptr::null;
 
 mod allocator;
 mod boot;
@@ -47,9 +48,9 @@ mod time;
 extern crate alloc;
 extern crate self as zfi;
 
-pub(crate) static mut ST: Option<&SystemTable> = None;
-pub(crate) static mut IMAGE: Option<&Image> = None;
-pub(crate) static mut DEBUG_WRITER: Option<RefCell<Box<dyn Write>>> = None;
+static mut ST: *const SystemTable = null(); // We can't panic without this so Option useless here.
+static mut IMAGE: *const Image = null(); // Same here.
+static mut DEBUG_WRITER: Option<RefCell<Box<dyn Write>>> = None;
 
 /// Initializes the ZFI.
 ///
@@ -64,8 +65,8 @@ pub unsafe fn init(
     debug_writer: Option<fn() -> Box<dyn Write>>,
 ) {
     // Initialize foundation.
-    ST = Some(st);
-    IMAGE = Some(im);
+    ST = st;
+    IMAGE = im;
 
     // Check EFI version.
     if st.hdr().revision() < TableRevision::new(1, 1) {

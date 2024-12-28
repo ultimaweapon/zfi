@@ -19,7 +19,7 @@ pub struct SystemTable {
 impl SystemTable {
     pub fn current() -> &'static SystemTable {
         // SAFETY: This is safe because the only place that write ST is our init function.
-        unsafe { ST.unwrap() }
+        unsafe { &*ST }
     }
 
     pub fn hdr(&self) -> &TableHeader {
