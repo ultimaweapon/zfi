@@ -21,22 +21,22 @@ impl SystemTable {
         &self.hdr
     }
 
-    pub fn stdin(&self) -> &'static SimpleTextInput {
+    pub fn stdin(&self) -> &SimpleTextInput {
         // SAFETY: This is safe because we mark ExitBootServices() as unsafe.
         unsafe { &*self.con_in }
     }
 
-    pub fn stdout(&self) -> &'static SimpleTextOutput {
+    pub fn stdout(&self) -> &SimpleTextOutput {
         // SAFETY: This is safe because we mark ExitBootServices() as unsafe.
         unsafe { &*self.con_out }
     }
 
-    pub fn stderr(&self) -> &'static SimpleTextOutput {
+    pub fn stderr(&self) -> &SimpleTextOutput {
         // SAFETY: This is safe because we mark ExitBootServices() as unsafe.
         unsafe { &*self.std_err }
     }
 
-    pub fn boot_services(&self) -> &'static BootServices {
+    pub fn boot_services(&self) -> &BootServices {
         // SAFETY: This is safe because we mark ExitBootServices() as unsafe.
         unsafe { &*self.boot_services }
     }

@@ -203,6 +203,7 @@ Keep in mind that you need to put everything your test needed in the same functi
 - The second parameter of `Owned::new()` is changed to `Dtor`.
 - `SystemTable::current()` was replaced with `zfi::system_table()`.
 - `Image::current()` was replaced with `zfi::current_image()`.
+- All getters on `SystemTable` no longer return a static lifetime.
 
 ## License
 
