@@ -204,6 +204,7 @@ Keep in mind that you need to put everything your test needed in the same functi
 - `SystemTable::current()` was replaced with `zfi::system_table()`.
 - `Image::current()` was replaced with `zfi::current_image()`.
 - All getters on `SystemTable` no longer return a static lifetime.
+- `EfiStr` and `EfiString` to longer implement `Display`. Use `EfiStr::display()` instead.
 
 ## License
 

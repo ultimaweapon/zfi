@@ -1,8 +1,7 @@
 use alloc::borrow::ToOwned;
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::borrow::Borrow;
-use core::fmt::{Display, Formatter};
+use core::fmt::{Formatter, Write};
 use core::mem::transmute;
 use core::slice::{from_raw_parts, IterMut};
 use core::str::FromStr;
@@ -15,6 +14,7 @@ use core::str::FromStr;
 pub struct EfiStr([u16]);
 
 impl EfiStr {
+    /// An empty string with only NUL character.
     pub const EMPTY: &'static Self = unsafe { Self::new_unchecked(&[0]) };
 
     /// # Safety
@@ -40,16 +40,25 @@ impl EfiStr {
         Self::new_unchecked(from_raw_parts(ptr, len + 1))
     }
 
+    /// Returnes a pointer to the first character.
     pub const fn as_ptr(&self) -> *const u16 {
         self.0.as_ptr()
     }
 
+    /// Returnes length of this string without NUL, in character.
     pub const fn len(&self) -> usize {
         self.0.len() - 1
     }
 
+    /// Returns `true` if this string contains only NUL character.
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    /// Returns object that implement [`core::fmt::Display`] for safely printing string that may
+    /// contain non-Unicode data.
+    pub const fn display(&self) -> impl core::fmt::Display + '_ {
+        Display(self)
     }
 }
 
@@ -83,12 +92,24 @@ impl ToOwned for EfiStr {
     }
 }
 
-impl Display for EfiStr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        let d = &self.0[..(self.0.len() - 1)]; // Exclude NUL.
-        let s = String::from_utf16(d).unwrap();
+/// Provides [`core::fmt::Display`] to display [`EfiStr`] lossy.
+struct Display<'a>(&'a EfiStr);
 
-        f.write_str(&s)
+impl<'a> core::fmt::Display for Display<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        // SAFETY: EfiStr guarantee to have NUL at the end.
+        let mut ptr = self.0.as_ptr();
+
+        while unsafe { *ptr != 0 } {
+            let c = unsafe { *ptr };
+            let c = char::from_u32(c.into()).unwrap_or(char::REPLACEMENT_CHARACTER);
+
+            f.write_char(c)?;
+
+            unsafe { ptr = ptr.add(1) };
+        }
+
+        Ok(())
     }
 }
 
@@ -163,12 +184,6 @@ impl<'a> IntoIterator for &'a mut EfiString {
 impl Borrow<EfiStr> for EfiString {
     fn borrow(&self) -> &EfiStr {
         unsafe { EfiStr::new_unchecked(&self.0) }
-    }
-}
-
-impl Display for EfiString {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        self.as_ref().fmt(f)
     }
 }
 
