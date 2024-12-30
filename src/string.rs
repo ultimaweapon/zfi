@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::fmt::{Formatter, Write};
 use core::mem::transmute;
+use core::ops::Deref;
 use core::slice::{from_raw_parts, IterMut};
 use core::str::FromStr;
 
@@ -163,9 +164,23 @@ impl FromStr for EfiString {
     }
 }
 
+impl Deref for EfiString {
+    type Target = EfiStr;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { EfiStr::new_unchecked(&self.0) }
+    }
+}
+
 impl AsRef<EfiStr> for EfiString {
     fn as_ref(&self) -> &EfiStr {
-        self.borrow()
+        self.deref()
+    }
+}
+
+impl Borrow<EfiStr> for EfiString {
+    fn borrow(&self) -> &EfiStr {
+        self.deref()
     }
 }
 
@@ -178,12 +193,6 @@ impl<'a> IntoIterator for &'a mut EfiString {
 
         // SAFETY: This is safe because EfiChar is #[repr(transparent)].
         unsafe { transmute(self.0[..len].iter_mut()) }
-    }
-}
-
-impl Borrow<EfiStr> for EfiString {
-    fn borrow(&self) -> &EfiStr {
-        unsafe { EfiStr::new_unchecked(&self.0) }
     }
 }
 
