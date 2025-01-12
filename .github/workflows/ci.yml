@@ -38,3 +38,7 @@ jobs:
       shell: cp -v {0} zfi.toml
     - name: Run tests
       run: cargo test
+    - name: Build docs
+      run: cargo doc --workspace --no-deps
+      env:
+        RUSTDOCFLAGS: -D warnings

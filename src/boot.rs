@@ -79,7 +79,7 @@ impl BootServices {
     }
 
     /// # Safety
-    /// `base` must be allocated with [`allocate_pages()`].
+    /// `base` must be allocated with [`Self::allocate_pages()`].
     pub unsafe fn free_pages(&self, base: *mut u8, pages: usize) -> Result<(), Status> {
         let status = (self.free_pages)(base as _, pages);
 
@@ -91,8 +91,8 @@ impl BootServices {
     }
 
     /// Returns the current memory map. A common mistake when using this method to get a key to
-    /// invoke [`exit_boot_services()`] is discarding the result, which will cause the vector to
-    /// drop and memory map will be changed.
+    /// invoke [`Self::exit_boot_services()`] is discarding the result, which will cause the vector
+    /// to drop and memory map will be changed.
     pub fn get_memory_map(&self) -> Result<(Vec<MemoryDescriptor>, usize), Status> {
         let mut len = 1;
 
@@ -142,7 +142,7 @@ impl BootServices {
     }
 
     /// # Safety
-    /// `mem` must be allocated by [`allocate_pool()`].
+    /// `mem` must be allocated by [`Self::allocate_pool()`].
     pub unsafe fn free_pool(&self, mem: *mut u8) -> Result<(), Status> {
         (self.free_pool)(mem).err_or(())
     }
