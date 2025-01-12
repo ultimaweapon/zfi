@@ -205,6 +205,9 @@ Keep in mind that you need to put everything your test needed in the same functi
 - `Image::current()` was replaced with `zfi::current_image()`.
 - All getters on `SystemTable` no longer return a static lifetime.
 - `EfiStr` and `EfiString` to longer implement `Display`. Use `EfiStr::display()` instead.
+- `Display` implementation of `DebugFileError`, `FileCreateError` and `FileSetLenError` no longer print the nested error. Use `core::error::Error::source()` to obtains the inner error instead.
+- `Path` no longer implement `Display`. Use `Path::display()` instead.
+- `PathNode` no longer implement `Display`. Currently no alternative is provided yet. Please create the issue if you want this feature so I can prioritize it.
 
 ## License
 

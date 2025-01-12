@@ -1,7 +1,7 @@
 use crate::EfiStr;
 use alloc::borrow::{Cow, ToOwned};
 use core::borrow::Borrow;
-use core::fmt::{Display, Formatter};
+use core::fmt::Formatter;
 use core::ops::Deref;
 use core::ptr::read_unaligned;
 use core::slice::from_raw_parts;
@@ -63,6 +63,10 @@ impl Path {
     pub const fn as_bytes(&self) -> &[u8] {
         &self.0
     }
+
+    pub const fn display(&self) -> impl core::fmt::Display + '_ {
+        Display(self)
+    }
 }
 
 impl PartialEq<PathBuf> for Path {
@@ -88,13 +92,19 @@ impl<'a> IntoIterator for &'a Path {
     }
 }
 
-impl Display for Path {
+/// Provides [`core::fmt::Display`] implementation to print [`Path`].
+struct Display<'a>(&'a Path);
+
+impl<'a> core::fmt::Display for Display<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        for (i, n) in self.into_iter().enumerate() {
+        for (i, n) in self.0.into_iter().enumerate() {
             if i != 0 {
                 f.write_str("/")?;
             }
-            n.read().fmt(f)?;
+
+            match n.read() {
+                PathNode::MediaFilePath(v) => write!(f, "{}", v.display())?,
+            }
         }
 
         Ok(())
@@ -162,14 +172,6 @@ impl Borrow<Path> for PathBuf {
 /// Contains the data that read from a device path node.
 pub enum PathNode<'a> {
     MediaFilePath(&'a EfiStr),
-}
-
-impl Display for PathNode<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            PathNode::MediaFilePath(p) => p.fmt(f),
-        }
-    }
 }
 
 /// An iterator over device path nodes.

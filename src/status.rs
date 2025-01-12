@@ -1,3 +1,4 @@
+use core::error::Error;
 use core::fmt::{Display, Formatter};
 
 /// Represents an `EFI_STATUS`.
@@ -34,6 +35,8 @@ impl Status {
         self == Self::SUCCESS
     }
 }
+
+impl Error for Status {}
 
 impl Display for Status {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {

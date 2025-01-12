@@ -3,9 +3,9 @@ use alloc::alloc::{alloc, dealloc, handle_alloc_error};
 use alloc::boxed::Box;
 use bitflags::bitflags;
 use core::alloc::Layout;
-use core::fmt::{Display, Formatter};
 use core::mem::zeroed;
 use core::ptr::null_mut;
+use thiserror::Error;
 
 /// Represents an `EFI_SIMPLE_FILE_SYSTEM_PROTOCOL`.
 #[repr(C)]
@@ -364,35 +364,24 @@ impl FileInfo {
 }
 
 /// Represents an error when [`File::create()`] is failed.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FileCreateError {
+    #[error(transparent)]
     CreateFailed(Status),
-    TruncateFailed(FileSetLenError),
-}
 
-impl Display for FileCreateError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::CreateFailed(e) => e.fmt(f),
-            Self::TruncateFailed(e) => write!(f, "cannot truncate the file -> {e}"),
-        }
-    }
+    #[error("cannot truncate the file")]
+    TruncateFailed(#[source] FileSetLenError),
 }
 
 /// Represents an error when [`File::set_len()`] is failed.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum FileSetLenError {
-    GetInfoFailed(Status),
-    FileIsDirectory,
-    SetInfoFailed(Status),
-}
+    #[error("cannot get the current info")]
+    GetInfoFailed(#[source] Status),
 
-impl Display for FileSetLenError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::GetInfoFailed(e) => write!(f, "cannot get the current info -> {e}"),
-            Self::FileIsDirectory => f.write_str("file is a directory"),
-            Self::SetInfoFailed(e) => write!(f, "cannot set file info -> {e}"),
-        }
-    }
+    #[error("file is a directory")]
+    FileIsDirectory,
+
+    #[error("cannot set file info")]
+    SetInfoFailed(#[source] Status),
 }

@@ -6,6 +6,7 @@ use core::mem::transmute;
 use core::ops::Deref;
 use core::slice::{from_raw_parts, IterMut};
 use core::str::FromStr;
+use thiserror::Error;
 
 /// A borrowed EFI string. The string is always have NUL at the end.
 ///
@@ -212,8 +213,11 @@ impl PartialEq<u8> for EfiChar {
 }
 
 /// Represents an error when an [`EfiString`] cnostruction is failed.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum EfiStringError {
+    #[error("the value contains NUL character")]
     HasNul(usize),
+
+    #[error("the value contains character outside Basic Multilingual Plane")]
     UnsupportedChar(usize, char),
 }

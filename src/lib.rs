@@ -72,7 +72,10 @@ pub unsafe fn init(
 
     // Check EFI version.
     if st.hdr().revision() < TableRevision::new(1, 1) {
-        panic!("UEFI version is too old to run {}", im.proto().file_path());
+        panic!(
+            "UEFI version is too old to run {}",
+            im.proto().file_path().display()
+        );
     }
 
     // Initialize debug log.

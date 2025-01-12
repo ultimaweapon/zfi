@@ -5,7 +5,8 @@ use crate::{
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
 use core::cell::RefCell;
-use core::fmt::{Display, Formatter, Write};
+use core::fmt::Write;
+use thiserror::Error;
 
 /// Prints to the debug log, with a newline.
 ///
@@ -87,25 +88,17 @@ impl Write for DebugFile {
 }
 
 /// Represents an error when [`DebugFile`] constructing is failed.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum DebugFileError {
+    #[error("the location of the current image is not supported")]
     UnsupportedImageLocation,
-    OpenRootFailed(&'static Path, Status),
-    UnsupportedExtension,
-    CreateFileFailed(EfiString, FileCreateError),
-}
 
-impl Display for DebugFileError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::UnsupportedImageLocation => {
-                f.write_str("the location of the current image is not supported")
-            }
-            Self::OpenRootFailed(p, e) => write!(f, "cannot open the root directory of {p} -> {e}"),
-            Self::UnsupportedExtension => {
-                f.write_str("file extension contains unsupported character")
-            }
-            Self::CreateFileFailed(p, e) => write!(f, "cannot create {p} -> {e}"),
-        }
-    }
+    #[error("cannot open the root directory of {}", .0.display())]
+    OpenRootFailed(&'static Path, #[source] Status),
+
+    #[error("file extension contains unsupported character")]
+    UnsupportedExtension,
+
+    #[error("cannot create {}", .0.display())]
+    CreateFileFailed(EfiString, #[source] FileCreateError),
 }
