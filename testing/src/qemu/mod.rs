@@ -41,6 +41,7 @@ pub fn gen_qemu_test(proj: PathBuf, mut root: PathBuf, name: &str, body: &str) -
             Dependency::Complex {
                 version: _,
                 path: Some(v),
+                default_features: _,
             } => v,
             _ => continue,
         };
@@ -66,6 +67,7 @@ pub fn gen_qemu_test(proj: PathBuf, mut root: PathBuf, name: &str, body: &str) -
             Dependency::Complex {
                 version: None,
                 path: Some(proj.into_os_string().into_string().unwrap()),
+                default_features: None,
             },
         );
     }
@@ -427,6 +429,8 @@ enum Dependency {
     Complex {
         version: Option<String>,
         path: Option<String>,
+        #[serde(rename = "default-features")]
+        default_features: Option<bool>,
     },
 }
 
