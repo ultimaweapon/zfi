@@ -95,7 +95,7 @@ impl<'a> IntoIterator for &'a Path {
 /// Provides [`core::fmt::Display`] implementation to print [`Path`].
 struct Display<'a>(&'a Path);
 
-impl<'a> core::fmt::Display for Display<'a> {
+impl core::fmt::Display for Display<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         for (i, n) in self.0.into_iter().enumerate() {
             if i != 0 {

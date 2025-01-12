@@ -97,7 +97,7 @@ impl ToOwned for EfiStr {
 /// Provides [`core::fmt::Display`] to display [`EfiStr`] lossy.
 struct Display<'a>(&'a EfiStr);
 
-impl<'a> core::fmt::Display for Display<'a> {
+impl core::fmt::Display for Display<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         // SAFETY: EfiStr guarantee to have NUL at the end.
         let mut ptr = self.0.as_ptr();
