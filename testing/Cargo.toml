@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 blake3 = "1.5.4"
 fatfs = "0.3"
-gpt = "3.1"
+gpt = "4.0.0"
 regex = "1.9"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.7"

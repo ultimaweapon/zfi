@@ -208,10 +208,9 @@ fn run_test(root: &Path, target: &str, config: &QemuConfig) {
 
     // Create a GPT.
     let mut gpt = GptConfig::new()
-        .initialized(false)
         .writable(true)
-        .create_from_device(Box::new(&mut disk), None)
-        .expect("cannot create a GPT");
+        .create_from_device(&mut disk, None)
+        .expect("creating a GPT disk on the memory should never fails");
 
     gpt.update_partitions(BTreeMap::new())
         .expect("cannot initialize the GTP");
