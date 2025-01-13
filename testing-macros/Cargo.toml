@@ -3,7 +3,7 @@ name = "zfi-testing-macros"
 description = "Macros to be used with zfi-testing crate"
 version = "0.1.0"
 license = "MIT"
-repository = "https://github.com/ultimicro/zfi"
+repository = "https://github.com/ultimaweapon/zfi"
 edition = "2021"
 
 [lib]

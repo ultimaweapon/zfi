@@ -13,7 +13,7 @@ thiserror = { version = "2.0.9", default-features = false }
 zfi-macros = { version = "0.1", path = "macros" }
 
 [dev-dependencies]
-zfi-testing = { path = "testing" }
+zfi-testing = { version = "0.1", path = "testing" }
 
 [workspace]
 members = ["macros", "testing", "testing-macros"]
