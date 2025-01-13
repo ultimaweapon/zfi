@@ -1,8 +1,8 @@
-name: CD
+name: Publish (zfi-macros)
 on:
   push:
     tags:
-    - '*'
+    - 'macros-v*'
 jobs:
   publish:
     name: Publish
@@ -12,11 +12,5 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
-    - name: Publish zfi-macros
+    - name: Publish
       run: cargo publish -p zfi-macros
-    - name: Publish zfi-testing-macros
-      run: cargo publish -p zfi-testing-macros
-    - name: Publish zfi-testing
-      run: cargo publish -p zfi-testing
-    - name: Publish zfi
-      run: cargo publish
