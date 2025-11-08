@@ -69,7 +69,7 @@ use zfi::{pause, println, Status};
 // the debug writer.
 #[zfi::main]
 fn main() -> Status {
-    // Use Image::current() to get the image handle.
+    // Use current_image() to get the image handle.
     println!("Hello, world!");
     pause();
 
